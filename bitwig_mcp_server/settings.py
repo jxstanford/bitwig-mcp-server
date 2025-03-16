@@ -1,9 +1,8 @@
+import logging
 from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
-
-import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

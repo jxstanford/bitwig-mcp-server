@@ -1,74 +1,216 @@
-# bitwig-mcp-server
+# Bitwig MCP Server
 
-[![Release](https://img.shields.io/github/v/release/jxstanford/bitwig-mcp-server)](https://img.shields.io/github/v/release/jxstanford/bitwig-mcp-server)
-[![Build status](https://img.shields.io/github/actions/workflow/status/jxstanford/bitwig-mcp-server/main.yml?branch=main)](https://github.com/jxstanford/bitwig-mcp-server/actions/workflows/main.yml?query=branch%3Amain)
-[![codecov](https://codecov.io/gh/jxstanford/bitwig-mcp-server/branch/main/graph/badge.svg)](https://codecov.io/gh/jxstanford/bitwig-mcp-server)
-[![Commit activity](https://img.shields.io/github/commit-activity/m/jxstanford/bitwig-mcp-server)](https://img.shields.io/github/commit-activity/m/jxstanford/bitwig-mcp-server)
-[![License](https://img.shields.io/github/license/jxstanford/bitwig-mcp-server)](https://img.shields.io/github/license/jxstanford/bitwig-mcp-server)
+A Python library for robust integration with Bitwig Studio's OSC API, providing parameter validation, response parsing, and high-level workflow tools for music production.
 
-MCP server for Bitwig Studio.
+## Features
 
-- **Github repository**: <https://github.com/jxstanford/bitwig-mcp-server/>
-- **Documentation** <https://jxstanford.github.io/bitwig-mcp-server/>
+- **Robust OSC Communication**: Reliable message sending and receiving with proper error handling
+- **Comprehensive Parameter Validation**: Type checking and range validation for all API parameters
+- **Intelligent Response Parsing**: Parse various OSC message formats and handle error conditions
+- **High-Level Workflow Tools**: Specialized tools for common music production workflows
+- **Fully Unit Tested**: Comprehensive test suite ensuring reliability
 
-## Getting started with your project
-
-### 1. Create a New Repository
-
-First, create a repository on GitHub with the same name as this project, and then run the following commands:
+## Installation
 
 ```bash
-git init -b main
-git add .
-git commit -m "init commit"
-git remote add origin git@github.com:jxstanford/bitwig-mcp-server.git
-git push -u origin main
+# Clone the repository
+git clone https://github.com/yourusername/bitwig-osc-integration.git
+cd bitwig-osc-integration
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-### 2. Set Up Your Development Environment
+## Requirements
 
-Then, install the environment and the pre-commit hooks with
+- Python 3.8+
+- python-osc
+- Bitwig Studio 5.0+ with OSC enabled
 
-```bash
-make install
+## Configuring Bitwig Studio
+
+1. Open Bitwig Studio
+2. Go to Settings > Controllers
+3. Add a new Generic OSC controller
+4. Configure the ports to match those used in your code (default: send 8000, receive 9000)
+
+## Basic Usage
+
+```python
+from bitwig_workflows import BitwigWorkflows
+
+# Create a new workflows client with default connection parameters
+with BitwigWorkflows() as bitwig:
+    # Basic transport controls
+    bitwig.client.play()
+    bitwig.client.set_tempo(120)
+
+    # Get information about tracks
+    tracks = bitwig.mixer.get_all_tracks()
+    for track in tracks:
+        print(f"Track {track.index}: {track.name} - Volume: {track.volume}")
+
+    # Set up a recording session
+    bitwig.setup_recording_session(track_index=0)
 ```
 
-This will also generate your `uv.lock` file
+## Architecture
 
-### 3. Run the pre-commit hooks
+The library is organized into several key components:
 
-Initially, the CI/CD pipeline might be failing due to formatting issues. To resolve those run:
+### Parameter Validation (`parameter_validation.py`)
 
-```bash
-uv run pre-commit run -a
+Handles validation of all API parameters, ensuring correct types and ranges.
+
+```python
+from parameter_validation import ParameterValidator
+
+# Validate a track index
+track_index = ParameterValidator.validate_int(user_input, min_val=0,
+                                             param_name="Track index")
+
+# Validate a volume level
+volume = ParameterValidator.validate_float(user_input, min_val=0.0, max_val=1.0,
+                                          param_name="Volume")
 ```
 
-### 4. Commit the changes
+### OSC Response Parser (`osc_response_parser.py`)
 
-Lastly, commit the changes made by the two steps above to your repository.
+Handles parsing of OSC messages and responses from Bitwig Studio.
 
-```bash
-git add .
-git commit -m 'Fix formatting issues'
-git push origin main
+```python
+from osc_response_parser import OscResponse, ResponseParser
+
+# Parse an OSC message into a response object
+response = ResponseParser.parse_message(message)
+
+# Check for errors and extract values
+if response.is_error:
+    print(f"Error: {response.error_message}")
+else:
+    value = response.get_float(0)
 ```
 
-You are now ready to start development on your project!
-The CI/CD pipeline will be triggered when you open a pull request, merge to main, or when you create a new release.
+### OSC Client (`osc_client.py`)
 
-To finalize the set-up for publishing to PyPI, see [here](https://jxstanford.github.io/cookiecutter-uv/features/publishing/#set-up-for-pypi).
-For activating the automatic documentation with MkDocs, see [here](https://jxstanford.github.io/cookiecutter-uv/features/mkdocs/#enabling-the-documentation-on-github).
-To enable the code coverage reports, see [here](https://jxstanford.github.io/cookiecutter-uv/features/codecov/).
+Provides low-level and high-level clients for OSC communication with Bitwig.
 
-## Releasing a new version
+```python
+from osc_client import BitwigApiClient
 
-- Create an API Token on [PyPI](https://pypi.org/).
-- Add the API Token to your projects secrets with the name `PYPI_TOKEN` by visiting [this page](https://github.com/jxstanford/bitwig-mcp-server/settings/secrets/actions/new).
-- Create a [new release](https://github.com/jxstanford/bitwig-mcp-server/releases/new) on Github.
-- Create a new tag in the form `*.*.*`.
+# Create a client
+client = BitwigApiClient()
+client.start()
 
-For more details, see [here](https://jxstanford.github.io/cookiecutter-uv/features/cicd/#how-to-trigger-a-release).
+# Control transport
+client.play()
+client.set_tempo(128.5)
 
----
+# Control tracks
+client.set_track_volume(0, 0.8)
+client.set_track_pan(1, -0.3)
 
-Repository initiated with [jxstanford/cookiecutter-uv](https://github.com/jxstanford/cookiecutter-uv), forked from [fpgmaas/cookiecutter-uv](https://github.com/fpgmaas/cookiecutter-uv)
+client.stop()
+```
+
+### Workflows (`bitwig_workflows.py`)
+
+Provides high-level workflow tools for common music production tasks.
+
+```python
+from bitwig_workflows import BitwigWorkflows
+
+with BitwigWorkflows() as bitwig:
+    # Set up a mixing session
+    bitwig.setup_mixing_session()
+
+    # Automate a filter sweep
+    bitwig.automate_filter_sweep(track_index=2, device_index=1,
+                                param_index=0, duration_sec=8.0)
+```
+
+## API Documentation
+
+### Transport Controls
+
+```python
+# Play, stop, record
+client.play()
+client.stop()
+client.record()
+
+# Set tempo
+client.set_tempo(120.5)
+
+# Position control
+transport.play_from_start()
+transport.set_loop_range(4.0, 12.0)
+transport.toggle_loop()
+```
+
+### Track Controls
+
+```python
+# Get track information
+track_count = client.get_track_count()
+track_name = client.get_track_name(track_index)
+
+# Set track parameters
+client.set_track_volume(track_index, volume)  # 0.0 to 1.0
+client.set_track_pan(track_index, pan)  # -1.0 to 1.0
+
+# Using the mixer control
+track_info = mixer.get_track_info(track_index)
+all_tracks = mixer.get_all_tracks()
+mixer.reset_mixer()
+mixer.set_track_levels({0: 0.8, 1: 0.7, 2: 0.75})
+```
+
+### Device Controls
+
+```python
+# Get device parameters
+parameters = devices.get_device_parameters(track_index, device_index)
+
+# Set device parameters
+devices.set_device_parameter(track_index, device_index, param_index, value)
+devices.toggle_device_enabled(track_index, device_index)
+
+# Automation
+workflows.automate_filter_sweep(track_index, device_index, param_index, duration_sec)
+```
+
+## Error Handling
+
+The library provides comprehensive error handling:
+
+```python
+from osc_client import OscClientError
+from parameter_validation import ValidationError
+
+try:
+    client.set_track_volume(track_index, volume)
+except ValidationError as e:
+    print(f"Invalid parameter: {e}")
+except OscClientError as e:
+    print(f"Communication error: {e}")
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- The Bitwig team for providing the OSC API
+- The python-osc library developers

@@ -121,4 +121,3 @@ skip_empty = true
 [tool.coverage.run]
 branch = true
 source = ["bitwig_mcp_server"]
-
