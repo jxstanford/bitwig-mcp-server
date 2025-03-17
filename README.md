@@ -18,7 +18,7 @@ git clone https://github.com/yourusername/bitwig-osc-integration.git
 cd bitwig-osc-integration
 
 # Install dependencies
-pip install -r requirements.txt
+uv sync
 ```
 
 ## Requirements
