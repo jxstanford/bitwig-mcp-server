@@ -196,6 +196,49 @@ except OscClientError as e:
     print(f"Communication error: {e}")
 ```
 
+## Testing
+
+The project includes a comprehensive test suite:
+
+```bash
+# Run unit tests only (skips Bitwig integration tests)
+make test
+
+# Run all tests including Bitwig integration tests
+# (requires Bitwig Studio running with OSC enabled)
+make test-all
+```
+
+### Integration Tests with Bitwig Studio
+
+Integration tests require:
+
+1. Bitwig Studio running
+2. OSC controller configured in Bitwig (Settings > Controllers)
+3. Proper port configuration (default: send 8000, receive 9000)
+
+These tests can be controlled via environment variables:
+
+- `BITWIG_TESTS_ENABLED=1`: Force enable Bitwig integration tests
+- `BITWIG_TESTS_DISABLED=1`: Force disable Bitwig integration tests
+
+> ⚠️ **WARNING**: Integration tests modify state in the currently open Bitwig project, including track volumes, pan settings, tempo, and device parameters. **DO NOT run these tests with important projects open in Bitwig**. Ideally, create a dedicated test project for integration testing.
+
+#### Future Improvements
+
+The current OSC implementation has several limitations for testing:
+
+- Cannot create new projects programmatically
+- Cannot create tracks or devices through OSC
+- No safe way to restore all state after testing
+
+Future work should:
+
+- Extend the OSC implementation to support project creation and management
+- Add commands for creating and configuring tracks and devices
+- Implement better state management for non-destructive testing
+- Create a dedicated test project file that can be loaded before tests begin
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -203,8 +246,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+4. Run tests (`make test`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
 ## License
 

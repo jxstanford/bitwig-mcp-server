@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
       fail-fast: false
     defaults:
       run:
@@ -43,11 +43,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Run tests
-        run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml
+      - name: Run tests (unit tests only)
+        run: make test
+        # This uses the test target in the Makefile which already sets BITWIG_TESTS_DISABLED=1
 
-      - name: Check typing
-        run: uv run mypy
+      - name: Run mypy type checking
+        run: source .venv/bin/activate && uv run mypy
 
       - name: Upload coverage reports to Codecov with GitHub Action on Python 3.11
         uses: codecov/codecov-action@v4
