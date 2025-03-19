@@ -6,7 +6,7 @@ MCP prompt template implementations for Bitwig Studio integration.
 
 from typing import Optional
 
-from mcp.types import Prompt, PromptArgument, PromptMessage, TextContent, UserMessage
+from mcp.types import Prompt, PromptArgument, PromptMessage, TextContent, Role
 
 
 class BitwigPrompts:
@@ -72,7 +72,8 @@ class BitwigPrompts:
         if name == "setup_mixing_session":
             num_tracks = arguments.get("num_tracks", "8")
             return [
-                UserMessage(
+                PromptMessage(
+                    role=Role.USER,
                     content=TextContent(
                         type="text",
                         text=f"""I want to set up a new mixing session in Bitwig Studio.
@@ -84,7 +85,7 @@ Here's what I need help with:
 4. Setting up basic mastering chain on the master track
 
 Can you help me set this up step by step?""",
-                    )
+                    ),
                 )
             ]
 
@@ -93,7 +94,8 @@ Can you help me set this up step by step?""",
             genre = arguments.get("genre", "general")
 
             return [
-                UserMessage(
+                PromptMessage(
+                    role=Role.USER,
                     content=TextContent(
                         type="text",
                         text=f"""I need to create a template for a {track_type} track in Bitwig Studio for {genre} music.
@@ -105,7 +107,7 @@ Please help me with:
 4. Are there any specific EQ or compression settings that would work well?
 
 Can you provide detailed step-by-step guidance?""",
-                    )
+                    ),
                 )
             ]
 
@@ -114,7 +116,8 @@ Can you provide detailed step-by-step guidance?""",
             problem = arguments.get("problem", "general balance")
 
             return [
-                UserMessage(
+                PromptMessage(
+                    role=Role.USER,
                     content=TextContent(
                         type="text",
                         text=f"""I'm having issues with my {track_type} track in Bitwig Studio. The specific problem is that it sounds {problem}.
@@ -126,7 +129,7 @@ Can you help me:
 4. Propose a step-by-step approach to fix the issue
 
 Please give me detailed settings I can try.""",
-                    )
+                    ),
                 )
             ]
 
