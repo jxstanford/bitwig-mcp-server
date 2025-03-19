@@ -1,5 +1,6 @@
-# Install uv
 FROM python:3.12-slim
+
+# Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 # Change the working directory to the `app` directory
@@ -18,4 +19,10 @@ ADD . /app
 # Sync the project
 RUN uv sync --frozen
 
-CMD [ "python", "bitwig_mcp_server/foo.py"]
+# Expose ports for MCP and OSC
+EXPOSE 8080
+EXPOSE 8000
+EXPOSE 9000
+
+# Run the Bitwig MCP Server
+CMD ["python", "-m", "bitwig_mcp_server"]
