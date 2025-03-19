@@ -29,14 +29,35 @@ class Settings(BaseSettings):
         app_tagline (str): The tagline of the application.
         root_dir (Path): The root directory of the application.
         log_level (str): The logging level (e.g., ERROR, WARN, INFO, DEBUG).
-
+        bitwig_host (str): The hostname or IP address of the Bitwig Studio instance.
+        bitwig_send_port (int): The port to send OSC messages to Bitwig.
+        bitwig_receive_port (int): The port to receive OSC messages from Bitwig.
+        mcp_port (int): The port for the MCP server's HTTP/SSE transport.
     """
 
     app_name: str = "bitwig-mcp-server"
     app_tagline: str = "MCP server for Bitwig Studio."
     root_dir: Path = Field(default_factory=get_default_root_dir)
-    app_logo_image: Path = Field(default_factory=lambda: get_default_root_dir() / "logo.jpg")
+    app_logo_image: Path = Field(
+        default_factory=lambda: get_default_root_dir() / "logo.jpg"
+    )
     log_level: str = Field(default="INFO", description="The logging level.")
+
+    # Bitwig settings
+    bitwig_host: str = Field(
+        default="127.0.0.1", description="Bitwig Studio host address"
+    )
+    bitwig_send_port: int = Field(
+        default=8000, description="Port to send OSC messages to Bitwig"
+    )
+    bitwig_receive_port: int = Field(
+        default=9000, description="Port to receive OSC messages from Bitwig"
+    )
+
+    # MCP settings
+    mcp_port: int = Field(
+        default=8080, description="Port for MCP server HTTP/SSE transport"
+    )
 
     class Config:
         """
@@ -59,7 +80,9 @@ class Settings(BaseSettings):
     @field_validator("log_level")
     def validate_log_level(cls, v: str) -> str:
         if v.upper() not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
-            raise ValueError("log_level must be one of DEBUG, INFO, WARNING, ERROR", "CRITICAL")
+            raise ValueError(
+                "log_level must be one of DEBUG, INFO, WARNING, ERROR", "CRITICAL"
+            )
         return v
 
     @field_validator("root_dir")
