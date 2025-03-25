@@ -30,8 +30,8 @@ class BitwigOSCController:
         ip: str = "127.0.0.1",
         send_port: int = 8000,
         receive_port: int = 9000,
-        connection_timeout: float = 5.0,
-        reconnect_attempts: int = 3,
+        connection_timeout: float = 10.0,  # Increased timeout for Bitwig operations
+        reconnect_attempts: int = 5,  # More reconnection attempts
     ):
         """Initialize the controller
 

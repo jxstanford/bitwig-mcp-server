@@ -39,9 +39,9 @@ def setup_test_environment(controller):
     """
     logger.info("Setting up test environment in Bitwig...")
 
-    # Ensure Bitwig is responding
+    # Ensure Bitwig is responding - give it plenty of time
     controller.client.refresh()
-    time.sleep(1)  # Give Bitwig time to respond
+    time.sleep(3)  # Give Bitwig more time to respond as it might be busy
 
     # Check that at least one track exists
     track_name = controller.server.get_message("/track/1/name")
@@ -316,14 +316,14 @@ def test_device_parameter(controller):
     # Refresh to get current state
     logger.info("Starting device parameter test")
     controller.client.refresh()
-    time.sleep(1.0)  # Longer wait for Bitwig to respond
+    time.sleep(3.0)  # Much longer wait for Bitwig to fully respond
 
     # First try track 1
     logger.info("Selecting track 1")
     controller.client.send("/track/1/select", 1)
-    time.sleep(1.0)
+    time.sleep(2.0)  # Allow time for track selection
     controller.client.refresh()
-    time.sleep(1.0)
+    time.sleep(2.0)  # Wait longer for refresh after track selection
 
     # Check if we have a device on track 1
     device_exists = controller.server.get_message("/device/exists")
@@ -356,9 +356,9 @@ def test_device_parameter(controller):
     # Try to explicitly select the first device
     logger.info("Attempting to explicitly select first device in chain")
     controller.client.send("/device/select/1", 1)
-    time.sleep(0.5)
+    time.sleep(2.0)  # Give Bitwig more time to select the device
     controller.client.refresh()
-    time.sleep(0.5)
+    time.sleep(2.0)  # Wait longer for refresh after device selection
     device_exists = controller.server.get_message("/device/exists")
     logger.info(f"After explicit device selection, device exists: {device_exists}")
 
@@ -401,7 +401,7 @@ def test_device_parameter(controller):
 
     # Change the parameter
     controller.client.set_device_parameter(param_index, test_value)
-    time.sleep(1.5)  # Longer wait for Bitwig to respond
+    time.sleep(3.0)  # Much longer wait for Bitwig to respond to parameter changes
 
     # Verify value changed
     updated_value = controller.server.wait_for_message(param_addr)

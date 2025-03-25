@@ -116,9 +116,9 @@ Our implementation is guided by the user stories documented in `docs/user_storie
 
 #### Resource Improvements
 
-- [ ] Add device-specific URIs with indices: `bitwig://device/{index}` and `bitwig://device/{index}/parameters`
+- [x] Add device-specific URIs with indices: `bitwig://device/{index}` and `bitwig://device/{index}/parameters`
 - [x] Add device siblings and layers resources (`bitwig://device/siblings` and `bitwig://device/layers`)
-- [ ] Handle URL encoding in resource URIs (currently `{index}` is encoded as `%7Bindex%7D`)
+- [x] Handle URL encoding in resource URIs (using proper URI parsing)
 - [x] Add comprehensive tests for the new device resources
 - [x] Fix OSC integration tests to properly select devices on tracks
 

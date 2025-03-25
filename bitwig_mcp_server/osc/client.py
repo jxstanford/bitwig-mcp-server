@@ -386,6 +386,28 @@ class BitwigOSCClient:
         """
         self.send("/device/window", None)
 
+    def select_device_by_index(self, device_index: int) -> None:
+        """Select a device by its index
+
+        Args:
+            device_index: Index of the device to select (1-based)
+
+        Raises:
+            InvalidParameterError: If device_index is invalid
+            ConnectionError: If unable to send the command
+        """
+        if not isinstance(device_index, int):
+            raise InvalidParameterError(
+                "device_index", device_index, "must be an integer"
+            )
+
+        if device_index < 1:
+            raise InvalidParameterError(
+                "device_index", device_index, "must be at least 1 (1-based indexing)"
+            )
+
+        self.send(f"/device/select/{device_index}", 1)
+
     def get_status(self) -> Dict[str, Any]:
         """Get client status information
 

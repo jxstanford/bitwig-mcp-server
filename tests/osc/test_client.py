@@ -44,6 +44,14 @@ class TestBitwigOSCClient(unittest.TestCase):
             "/device/sibling/3/select", 1
         )
 
+        # Test select device by index
+        self.client.select_device_by_index(2)
+        self.client.client.send_message.assert_called_with("/device/select/2", 1)
+
+        # Test select invalid device index
+        with pytest.raises(InvalidParameterError):
+            self.client.select_device_by_index(0)  # Below range
+
         # Test select invalid sibling
         with pytest.raises(InvalidParameterError):
             self.client.select_device_sibling(0)  # Below range

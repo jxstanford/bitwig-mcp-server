@@ -54,6 +54,18 @@ def get_bitwig_resources() -> List[Resource]:
             mimeType="text/plain",
         ),
         Resource(
+            uri="bitwig://device/{index}",
+            name="Device Details",
+            description="Detailed information about a specific device by index",
+            mimeType="text/plain",
+        ),
+        Resource(
+            uri="bitwig://device/{index}/parameters",
+            name="Device Parameters by Index",
+            description="Parameters for a specific device by index",
+            mimeType="text/plain",
+        ),
+        Resource(
             uri="bitwig://device/siblings",
             name="Device Siblings",
             description="List of sibling devices in the current device chain",
@@ -111,6 +123,39 @@ async def read_resource(controller: BitwigOSCController, uri: str) -> str:
 
         elif uri == "bitwig://device/layers":
             return _read_device_layers_resource(controller)
+
+        elif uri.startswith("bitwig://device/"):
+            # Use proper URI parsing
+            from urllib.parse import urlparse
+
+            # Parse the URI
+            parsed_uri = urlparse(uri)
+
+            # Get the path component without leading slash
+            path = parsed_uri.path.lstrip("/")
+            path_parts = path.split("/")
+
+            # Handle device/{index} (e.g., bitwig://device/1)
+            if len(path_parts) == 1 and path_parts[0].isdigit():
+                try:
+                    device_index = int(path_parts[0])
+                    return _read_device_resource_by_index(controller, device_index)
+                except (ValueError, IndexError):
+                    raise ValueError(f"Invalid device URI: {uri}")
+
+            # Handle device/{index}/parameters (e.g., bitwig://device/1/parameters)
+            elif (
+                len(path_parts) == 2
+                and path_parts[0].isdigit()
+                and path_parts[1] == "parameters"
+            ):
+                try:
+                    device_index = int(path_parts[0])
+                    return _read_device_parameters_resource_by_index(
+                        controller, device_index
+                    )
+                except (ValueError, IndexError):
+                    raise ValueError(f"Invalid device parameters URI: {uri}")
 
         else:
             raise ValueError(f"Unknown resource URI: {uri}")
@@ -405,3 +450,97 @@ def _read_device_layers_resource(controller: BitwigOSCController) -> str:
         return "\n".join(layers_info)
     else:
         return "No device layers found or device does not support layers"
+
+
+def _read_device_resource_by_index(
+    controller: BitwigOSCController, device_index: int
+) -> str:
+    """Read specific device resource by index
+
+    Args:
+        controller: BitwigOSCController instance
+        device_index: Index of the device to read
+
+    Returns:
+        Detailed information about the device
+
+    Raises:
+        ValueError: If device is not found
+    """
+    # Select the device by index
+    controller.client.select_device_by_index(device_index)
+
+    # Wait for Bitwig to process the device selection
+    # Bitwig can take significant time to respond, especially when busy
+    import time
+
+    time.sleep(2.0)  # Initial 2 second delay to allow Bitwig to process the selection
+
+    # Try up to 3 times with longer delays to get device state
+    for attempt in range(3):
+        # Check if device selection succeeded
+        device_exists = controller.server.get_message("/device/exists")
+        if device_exists:
+            break
+        # Give Bitwig significantly more time to respond
+        time.sleep(1.0)  # Additional 1 second per attempt, up to 5 seconds total
+    if not device_exists:
+        raise ValueError(f"Device {device_index} not found")
+
+    device_name = controller.server.get_message("/device/name")
+    result = [f"Device: {device_name}", f"Index: {device_index}"]
+
+    # Additional device properties
+    properties = {
+        "bypass": "Bypassed",
+        "chain/size": "Chain Size",
+        "preset/name": "Preset",
+        "category": "Category",
+    }
+
+    for prop_key, prop_name in properties.items():
+        value = controller.server.get_message(f"/device/{prop_key}")
+        if value is not None:
+            if prop_key == "bypass":
+                value = bool(value)
+            result.append(f"{prop_name}: {value}")
+
+    return "\n".join(result)
+
+
+def _read_device_parameters_resource_by_index(
+    controller: BitwigOSCController, device_index: int
+) -> str:
+    """Read parameters for a specific device by index
+
+    Args:
+        controller: BitwigOSCController instance
+        device_index: Index of the device to read parameters for
+
+    Returns:
+        Information about parameters for the specified device
+
+    Raises:
+        ValueError: If device is not found
+    """
+    # Select the device by index
+    controller.client.select_device_by_index(device_index)
+
+    # Wait for Bitwig to process the device selection
+    # Bitwig can take significant time to respond, especially when busy
+    import time
+
+    time.sleep(2.0)  # Initial 2 second delay to allow Bitwig to process the selection
+
+    # Try up to 3 times with longer delays to get device state
+    for attempt in range(3):
+        # Check if device selection succeeded
+        device_exists = controller.server.get_message("/device/exists")
+        if device_exists:
+            break
+        # Give Bitwig significantly more time to respond
+        time.sleep(1.0)  # Additional 1 second per attempt, up to 5 seconds total
+    if not device_exists:
+        raise ValueError(f"Device {device_index} not found")
+
+    return _read_device_parameters_resource(controller)
