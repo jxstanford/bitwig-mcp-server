@@ -4,7 +4,9 @@ Bitwig OSC Server
 Listens for OSC messages from Bitwig
 """
 
+import atexit
 import logging
+import socket
 import threading
 import time
 from datetime import datetime
@@ -12,6 +14,36 @@ from typing import Any, Callable, Optional
 
 from pythonosc import dispatcher
 from pythonosc.osc_server import ThreadingOSCUDPServer
+
+# Keep track of created servers for cleanup
+_active_server_ports = set()
+
+
+@atexit.register
+def _cleanup_servers():
+    """Attempt to forcibly release any used OSC server ports on exit"""
+    for port in _active_server_ports:
+        try:
+            # Try to bind to the port - if successful, it means no server is using it
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.bind(("127.0.0.1", port))
+            sock.close()
+            logging.debug(f"Port {port} already released")
+        except OSError:
+            logging.warning(f"Attempting to force-release port {port}")
+            try:
+                # Create a socket and force reuse address
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                sock.bind(("127.0.0.1", port))
+                sock.close()
+                logging.info(f"Successfully force-released port {port}")
+            except OSError as e:
+                logging.error(f"Failed to force-release port {port}: {e}")
+
+    # Clear the set after cleanup
+    _active_server_ports.clear()
+
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +115,9 @@ class BitwigOSCServer:
         self.server = ThreadingOSCUDPServer((self.ip, self.port), self.dispatcher)
         logger.info(f"OSC Server listening on {self.ip}:{self.port}")
 
+        # Register this port for cleanup tracking
+        _active_server_ports.add(self.port)
+
         # Set running flag
         self.running = True
 
@@ -107,6 +142,17 @@ class BitwigOSCServer:
         # Server should exit on next handle_request
         if self.server_thread:
             self.server_thread.join(timeout=1.0)
+
+        # Remove this port from cleanup tracking
+        if self.port in _active_server_ports:
+            _active_server_ports.remove(self.port)
+
+        # Close the server socket if possible
+        if hasattr(self, "server") and self.server:
+            try:
+                self.server.server_close()
+            except Exception as e:
+                logger.error(f"Error closing server socket: {e}")
 
     def get_message(self, address: str) -> Optional[Any]:
         """Get the latest message value for an address

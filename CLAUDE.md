@@ -1,82 +1,121 @@
-# Bitwig MCP Server Project Status
+# Bitwig MCP Server - Claude Code Guide
 
 ## Project Overview
 
-This project is creating a server that will allow Claude to control Bitwig Studio through the Model Context Protocol (MCP). The server will translate between MCP requests from Claude and OSC commands to Bitwig.
+This project creates a server that allows Claude to control Bitwig Studio through the Model Context Protocol (MCP). It translates between MCP requests from Claude and OSC commands to Bitwig Studio's control API.
 
-## Progress
+## External References
 
-### Completed
+### MCP SDK and Documentation
 
-- Basic project structure created based on modern Python best practices
-- OSC communication layer implemented:
-  - `BitwigOSCClient`: Sends OSC messages to Bitwig
-  - `BitwigOSCServer`: Receives OSC messages from Bitwig
-  - `BitwigOSCController`: Coordinates bidirectional communication
-- Created user stories document in `docs/user_stories.md`
+- MCP python-sdk GitHub Repository: https://github.com/modelcontextprotocol/python-sdk
+- MCP documentation: https://modelcontextprotocol.io/
+- GitHub Repository: https://github.com/anthropics/anthropic-sdk-python
+- Documentation: https://docs.anthropic.com/
 
-### In Progress
+### Project-specific references
 
-- Designing the MCP Server implementation that will translate between MCP and OSC
-- Implementing MCP-specific components to handle Claude's connections
+- coding guidelines: https://github.com/jxstanford/prompts-and-context/code
+- MCP development guidelines: https://github.com/jxstanford/prompts-and-context/mcp
+- Bitwig and OSC documentation: https://github.com/jxstanford/prompts-and-context/bitwig-mcp-server
 
-## Next Steps
+## Current Status
 
-Based on the Model Context Protocol (MCP) documentation and SDK, we need to:
+### Implemented Components
 
-1. Set up the MCP server using the Python SDK to handle communication with Claude
-2. Define resources and tools that expose Bitwig functionality to Claude
-3. Implement the translation layer between MCP requests and OSC commands
-4. Create prompts for common music production workflows
-5. Test the integration with Claude Desktop
+- OSC Communication Layer:
+  - `BitwigOSCClient`: Sends OSC messages to Bitwig (`bitwig_mcp_server/osc/client.py`)
+  - `BitwigOSCServer`: Receives OSC messages from Bitwig (`bitwig_mcp_server/osc/server.py`)
+  - `BitwigOSCController`: Coordinates bidirectional communication (`bitwig_mcp_server/osc/controller.py`)
+- MCP Server Framework:
+  - `BitwigMCPServer`: Main server class integrating MCP and OSC (moved to `bitwig_mcp_server/mcp/server.py`)
+  - `app.py`: High-level application coordinator (`bitwig_mcp_server/app.py`)
+  - MCP Tools: Basic Bitwig control operations (`bitwig_mcp_server/mcp/tools.py`)
+  - MCP Resources: Queryable Bitwig state information (`bitwig_mcp_server/mcp/resources.py`)
+  - MCP Prompts: Templates for common workflows (`bitwig_mcp_server/mcp/prompts.py`)
 
-## Current Task
+### Development Workflow
 
-Based on the MCP documentation and SDK, we should:
+When working on this codebase:
 
-1. Implement an MCP server using the Python SDK (`mcp` package)
-2. Create a toolkit of Bitwig-specific tools that Claude can use
-3. Expose Bitwig's state as MCP resources
-4. Define prompts for common music production workflows
-5. Define the architecture for translating between MCP and OSC
-6. Implement the bidirectional communication flow
-7. Create a simplified API that Claude can easily understand
+1. Use `pytest` for running tests: `pytest tests/`
+2. For type checking: `mypy bitwig_mcp_server/`
+3. For linting: `ruff check bitwig_mcp_server/`
+4. For code formatting: `black bitwig_mcp_server/`
 
-Let's start by designing the architecture for the MCP server layer that builds on our existing OSC integration work.
+## Project Structure
 
-## MCP Implementation Approach
+### Core Components
 
-### MCP Components
+- `bitwig_mcp_server/app.py`: Main application coordinator (high-level)
+- `bitwig_mcp_server/settings.py`: Configuration settings
+- `bitwig_mcp_server/mcp/`: Model Context Protocol implementation
+  - `bitwig_mcp_server/mcp/server.py`: MCP server implementation
+  - `bitwig_mcp_server/mcp/tools.py`: Tools Claude can use to control Bitwig
+  - `bitwig_mcp_server/mcp/resources.py`: Resources Claude can query about Bitwig's state
+  - `bitwig_mcp_server/mcp/prompts.py`: Templates for common music production workflows
+- `bitwig_mcp_server/osc/`: Open Sound Control implementation
+  - `bitwig_mcp_server/osc/client.py`: Client to send OSC messages to Bitwig
+  - `bitwig_mcp_server/osc/server.py`: Server to receive OSC messages from Bitwig
+  - `bitwig_mcp_server/osc/controller.py`: Coordinates OSC client and server
+  - `bitwig_mcp_server/osc/error_handler.py`: Handles OSC communication errors
+  - `bitwig_mcp_server/osc/exceptions.py`: Custom exceptions for OSC communication
 
-- **Tools**: Active operations Claude can perform on Bitwig (transport controls, parameter changes)
-- **Resources**: Queryable state and information from Bitwig (track list, device parameters)
-- **Prompts**: Pre-defined templates for common workflows (track creation, mixing setup)
+### Testing Structure
 
-### Implementation Strategy
+- `tests/mcp/`: Unit tests for MCP components
+  - `tests/mcp/test_server.py`: Tests for the MCP server
+  - `tests/mcp/test_tools.py`: Tests for MCP tools
+  - `tests/mcp/test_resources.py`: Tests for MCP resources
+- `tests/osc/`: Unit tests for OSC components
+- `tests/integration/`: Integration tests
+  - `tests/integration/test_mcp_integration.py`: Tests for MCP server integration
+  - `tests/integration/test_osc_integration.py`: Tests for OSC communication
 
-We will use the FastMCP approach from the Python SDK for simplified server creation, with stdio transport for Claude Desktop integration. Our implementation will focus on translating between MCP tools/resources and OSC commands.
+## Implementation Guidelines
 
-## User Stories
+### MCP Tools Design
 
-See the User Stories document for detailed user stories guiding our implementation.
+- Tools should follow the MCP Tool schema pattern
+- Each tool should map to one or more OSC commands
+- Error handling should be comprehensive and informative
+- Consider user experience when designing tool APIs
 
-## Implementation Plans
+### MCP Resources Design
 
-- Revised Implementation Plan outlines our overall approach
-- MCP Integration Details describes how we'll use the MCP protocol
-- First Milestone Implementation Plan provides concrete steps for our first milestone
+- Resources should provide clear, structured information
+- Use URIs that follow a consistent pattern
+- Cache resource data appropriately to avoid excessive OSC traffic
+- Consider versioning for evolving resources
 
-## Questions to Resolve
+## TODO Items
 
-- How should we structure the MCP tools to make them intuitive for Claude?
-- What resources should we expose from Bitwig to Claude?
-- How should we organize the translation between MCP requests and OSC commands?
-- How to handle state tracking across multiple Claude sessions?
-- What prompts would be most useful for common music production workflows?
+### Resource Improvements
 
-## References
+- [ ] Add device-specific URIs with indices: `bitwig://device/{index}` and `bitwig://device/{index}/parameters`
+- [x] Add device siblings and layers resources (`bitwig://device/siblings` and `bitwig://device/layers`)
+- [ ] Handle URL encoding in resource URIs (currently `{index}` is encoded as `%7Bindex%7D`)
+- [x] Add comprehensive tests for the new device resources
+- [x] Fix OSC integration tests to properly select devices on tracks
 
-We'll be using the MCP Python SDK (`mcp` package) for implementing the server.
+### Integration Improvements
 
-- [Model Context Protocol Documentation](https://modelcontextprotocol.io)
-- [Bitwig Studio OSC Documentation](https://www.bitwig.com/userguide/latest/remote_control/)
+- [ ] Fix app integration tests that use the MCP protocol
+- [ ] Ensure MCP server tests work with mock controllers
+
+### Development Tasks
+
+1. Expand the existing tools in `tools.py` to cover more Bitwig functionality
+2. Add more detailed resource representations in `resources.py`
+3. Create additional prompt templates in `prompts.py` for common workflows
+4. Ensure robust error handling throughout the codebase
+5. Add comprehensive tests for all new functionality
+
+## Testing
+
+For testing:
+
+- Unit tests are in the `tests/` directory
+- Integration tests that check OSC functionality are in `tests/integration/`
+- Ensure venv is active
+- Run tests with `pytest tests/` or `make test`

@@ -16,14 +16,19 @@ check: ## Run code quality tools.
 	@source .venv/bin/activate && uv run deptry .
 
 .PHONY: test
-test: ## Test the code with pytest (excludes integration tests by default)
-	@echo "🚀 Testing code: Running pytest"
-	@source .venv/bin/activate && BITWIG_TESTS_DISABLED=1 uv run python -m pytest --cov --cov-config=pyproject.toml --cov-report=xml
+test: ## Run unit tests only (excludes all integration tests)
+	@echo "🚀 Testing code: Running unit tests only"
+	@source .venv/bin/activate && uv run python -m pytest -k "not integration" --cov --cov-config=pyproject.toml --cov-report=xml
+
+.PHONY: test-integration
+test-integration: ## Run all integration tests
+	@echo "🚀 Testing code: Running integration tests"
+	@source .venv/bin/activate && INTEGRATION_TESTS=1 uv run python -m pytest tests/integration/
 
 .PHONY: test-all
-test-all: ## Test the code with pytest including Bitwig integration tests
-	@echo "🚀 Testing code: Running pytest with integration tests"
-	@source .venv/bin/activate && BITWIG_TESTS_ENABLED=1 uv run python -m pytest --cov --cov-config=pyproject.toml --cov-report=xml
+test-all: ## Run all tests including integration tests
+	@echo "🚀 Testing code: Running all tests"
+	@source .venv/bin/activate && INTEGRATION_TESTS=1 uv run python -m pytest --cov --cov-config=pyproject.toml --cov-report=xml
 
 .PHONY: build
 build: clean-build ## Build wheel file

@@ -1,12 +1,14 @@
 """
-conftest.py - Configuration for pytest
+Configuration for pytest.
 
-This file contains fixtures that are available to all test files
+This file contains fixtures that are available to all test files.
 """
 
 import os
 import socket
 import sys
+from typing import Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -14,8 +16,8 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
-def is_bitwig_running():
-    """Check if Bitwig is likely running by trying to connect to its OSC port"""
+def is_bitwig_running() -> bool:
+    """Check if Bitwig is likely running by trying to connect to its OSC port."""
     # First check environment variable
     if os.environ.get("BITWIG_TESTS_ENABLED", "").lower() in ("1", "true", "yes"):
         print("Bitwig integration tests enabled via environment variable")
@@ -64,3 +66,38 @@ def is_bitwig_running():
 skip_if_bitwig_not_running = pytest.mark.skipif(
     not is_bitwig_running(), reason="Bitwig Studio does not appear to be running"
 )
+
+
+@pytest.fixture
+def mock_osc_controller() -> Generator[MagicMock, None, None]:
+    """Fixture that provides a mocked BitwigOSCController."""
+    with patch(
+        "bitwig_mcp_server.mcp.server.BitwigOSCController"
+    ) as mock_controller_class:
+        controller = MagicMock()
+        controller.ready = True
+
+        # Mock the client and server
+        controller.client = MagicMock()
+        controller.server = MagicMock()
+
+        # Set up the mock to return the controller instance
+        mock_controller_class.return_value = controller
+
+        yield controller
+
+
+@pytest.fixture
+def mock_mcp_server() -> Generator[MagicMock, None, None]:
+    """Fixture that provides a mocked MCP Server."""
+    with patch("bitwig_mcp_server.mcp.server.MCPServer") as mock_server_class:
+        server = MagicMock()
+        mock_server_class.return_value = server
+
+        # Set up request handlers
+        server.list_tools.return_value = MagicMock()
+        server.call_tool.return_value = MagicMock()
+        server.list_resources.return_value = MagicMock()
+        server.read_resource.return_value = MagicMock()
+
+        yield server

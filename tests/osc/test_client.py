@@ -3,7 +3,10 @@
 import unittest
 from unittest.mock import MagicMock
 
+import pytest
+
 from bitwig_mcp_server.osc.client import BitwigOSCClient
+from bitwig_mcp_server.osc.exceptions import InvalidParameterError
 
 
 class TestBitwigOSCClient(unittest.TestCase):
@@ -29,6 +32,50 @@ class TestBitwigOSCClient(unittest.TestCase):
         self.client.play(False)
         self.client.client.send_message.assert_called_with("/play", 0)
 
+    def test_device_controls(self):
+        """Test device control methods"""
+        # Test toggle device bypass
+        self.client.toggle_device_bypass()
+        self.client.client.send_message.assert_called_with("/device/bypass", None)
+
+        # Test select device sibling
+        self.client.select_device_sibling(3)
+        self.client.client.send_message.assert_called_with(
+            "/device/sibling/3/select", 1
+        )
+
+        # Test select invalid sibling
+        with pytest.raises(InvalidParameterError):
+            self.client.select_device_sibling(0)  # Below range
+        with pytest.raises(InvalidParameterError):
+            self.client.select_device_sibling(9)  # Above range
+
+        # Test navigate device next
+        self.client.navigate_device("next")
+        self.client.client.send_message.assert_called_with("/device/+", None)
+
+        # Test navigate device previous
+        self.client.navigate_device("previous")
+        self.client.client.send_message.assert_called_with("/device/-", None)
+
+        # Test invalid navigation direction
+        with pytest.raises(InvalidParameterError):
+            self.client.navigate_device("invalid")
+
+        # Test enter device layer
+        self.client.enter_device_layer(2)
+        self.client.client.send_message.assert_called_with(
+            "/device/layer/2/enter", None
+        )
+
+        # Test exit device layer
+        self.client.exit_device_layer()
+        self.client.client.send_message.assert_called_with("/device/layer/parent", None)
+
+        # Test toggle device window
+        self.client.toggle_device_window()
+        self.client.client.send_message.assert_called_with("/device/window", None)
+
         self.client.play()
         self.client.client.send_message.assert_called_with("/play", None)
 
@@ -41,8 +88,8 @@ class TestBitwigOSCClient(unittest.TestCase):
         self.client.client.send_message.assert_called_with("/tempo/raw", 120.5)
 
         # Test tempo clamping
-        self.client.set_tempo(700)
-        self.client.client.send_message.assert_called_with("/tempo/raw", 666)
+        self.client.set_tempo(1200)
+        self.client.client.send_message.assert_called_with("/tempo/raw", 999)
 
     def test_track_controls(self):
         """Test track control methods"""

@@ -1,207 +1,144 @@
 # Bitwig MCP Server
 
-A Python library for robust integration with Bitwig Studio's OSC API, providing parameter validation, response parsing, and high-level workflow tools for music production.
+[![Release](https://img.shields.io/github/v/release/jxstanford/bitwig-mcp-server)](https://img.shields.io/github/v/release/jxstanford/bitwig-mcp-server)
+[![Build status](https://img.shields.io/github/actions/workflow/status/jxstanford/bitwig-mcp-server/main.yml?branch=main)](https://github.com/jxstanford/bitwig-mcp-server/actions/workflows/main.yml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/jxstanford/bitwig-mcp-server/branch/main/graph/badge.svg)](https://codecov.io/gh/jxstanford/bitwig-mcp-server)
+[![License](https://img.shields.io/github/license/jxstanford/bitwig-mcp-server)](https://img.shields.io/github/license/jxstanford/bitwig-mcp-server)
+
+A Model Context Protocol (MCP) server for Bitwig Studio that allows Claude to control your DAW.
 
 ## Features
 
-- **Robust OSC Communication**: Reliable message sending and receiving with proper error handling
-- **Comprehensive Parameter Validation**: Type checking and range validation for all API parameters
-- **Intelligent Response Parsing**: Parse various OSC message formats and handle error conditions
-- **High-Level Workflow Tools**: Specialized tools for common music production workflows
-- **Fully Unit Tested**: Comprehensive test suite ensuring reliability
+- **AI-Powered Music Production**: Control Bitwig Studio with Claude via MCP
+- **Transport Controls**: Play, stop, and set tempo
+- **Mixer Controls**: Adjust volume, pan, and mute/unmute tracks
+- **Device Controls**: Manipulate device parameters
+- **Project Information**: Access track and device information
+- **Templates and Prompts**: Pre-configured workflows for common tasks
 
 ## Installation
 
+### Prerequisites
+
+- Python 3.10+
+- [Bitwig Studio](https://www.bitwig.com/) 5.2+
+- [Driven by Moss](https://www.mossgrabers.de/Software/Bitwig/Bitwig.html#5.2) 5.2+
+- [Claude Desktop](https://claude.ai/download) app with MCP support
+
+### Install from GitHub
+
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/bitwig-osc-integration.git
-cd bitwig-osc-integration
+git clone https://github.com/jxstanford/bitwig-mcp-server.git
+cd bitwig-mcp-server
 
 # Install dependencies
 uv sync
 ```
 
-## Requirements
+## Usage
 
-- Python 3.8+
-- python-osc
-- Bitwig Studio 5.0+ with OSC enabled
+### 1. Configure Bitwig Studio
 
-## Configuring Bitwig Studio
+1. If necessary, add a virtual MIDI device for OSC
+2. Follow Driven by Moss installation instructions for Bitwig 5.2+
+3. Open or restart Bitwig Studio
+4. Go to Settings > Controllers
+5. Click "Add Controller" and select "Open Sound Control" and "OSC"
+6. Configure the receive port (default: 8000) and send port (default: 9000)
+7. Enable the controller
 
-1. Open Bitwig Studio
-2. Go to Settings > Controllers
-3. Add a new Generic OSC controller
-4. Configure the ports to match those used in your code (default: send 8000, receive 9000)
+### 2. Run the Bitwig MCP Server
 
-## Basic Usage
+```bash
+# Run the server with default settings
+python -m bitwig_mcp_server
 
-```python
-from bitwig_workflows import BitwigWorkflows
-
-# Create a new workflows client with default connection parameters
-with BitwigWorkflows() as bitwig:
-    # Basic transport controls
-    bitwig.client.play()
-    bitwig.client.set_tempo(120)
-
-    # Get information about tracks
-    tracks = bitwig.mixer.get_all_tracks()
-    for track in tracks:
-        print(f"Track {track.index}: {track.name} - Volume: {track.volume}")
-
-    # Set up a recording session
-    bitwig.setup_recording_session(track_index=0)
+# Or run with custom settings
+python -m bitwig_mcp_server --host 127.0.0.1 --send-port 8000 --receive-port 9000 --transport stdio --debug
 ```
 
-## Architecture
+### 3. Add to Claude Desktop
 
-The library is organized into several key components:
-
-### Parameter Validation (`parameter_validation.py`)
-
-Handles validation of all API parameters, ensuring correct types and ranges.
-
-```python
-from parameter_validation import ParameterValidator
-
-# Validate a track index
-track_index = ParameterValidator.validate_int(user_input, min_val=0,
-                                             param_name="Track index")
-
-# Validate a volume level
-volume = ParameterValidator.validate_float(user_input, min_val=0.0, max_val=1.0,
-                                          param_name="Volume")
+```bash
+# Install the server in Claude Desktop
+mcp install bitwig_mcp_server/__main__.py
 ```
 
-### OSC Response Parser (`osc_response_parser.py`)
+Then open Claude Desktop and select the Bitwig MCP Server from the MCP Servers dropdown.
 
-Handles parsing of OSC messages and responses from Bitwig Studio.
+## Available Tools
 
-```python
-from osc_response_parser import OscResponse, ResponseParser
-
-# Parse an OSC message into a response object
-response = ResponseParser.parse_message(message)
-
-# Check for errors and extract values
-if response.is_error:
-    print(f"Error: {response.error_message}")
-else:
-    value = response.get_float(0)
-```
-
-### OSC Client (`osc_client.py`)
-
-Provides low-level and high-level clients for OSC communication with Bitwig.
-
-```python
-from osc_client import BitwigApiClient
-
-# Create a client
-client = BitwigApiClient()
-client.start()
-
-# Control transport
-client.play()
-client.set_tempo(128.5)
-
-# Control tracks
-client.set_track_volume(0, 0.8)
-client.set_track_pan(1, -0.3)
-
-client.stop()
-```
-
-### Workflows (`bitwig_workflows.py`)
-
-Provides high-level workflow tools for common music production tasks.
-
-```python
-from bitwig_workflows import BitwigWorkflows
-
-with BitwigWorkflows() as bitwig:
-    # Set up a mixing session
-    bitwig.setup_mixing_session()
-
-    # Automate a filter sweep
-    bitwig.automate_filter_sweep(track_index=2, device_index=1,
-                                param_index=0, duration_sec=8.0)
-```
-
-## API Documentation
+The Bitwig MCP Server provides the following tools:
 
 ### Transport Controls
 
-```python
-# Play, stop, record
-client.play()
-client.stop()
-client.record()
-
-# Set tempo
-client.set_tempo(120.5)
-
-# Position control
-transport.play_from_start()
-transport.set_loop_range(4.0, 12.0)
-transport.toggle_loop()
-```
+- **play**: Toggle play/pause state or set it to a specific state
+- **stop**: Stop playback
+- **set_tempo**: Set the tempo in beats per minute
 
 ### Track Controls
 
-```python
-# Get track information
-track_count = client.get_track_count()
-track_name = client.get_track_name(track_index)
-
-# Set track parameters
-client.set_track_volume(track_index, volume)  # 0.0 to 1.0
-client.set_track_pan(track_index, pan)  # -1.0 to 1.0
-
-# Using the mixer control
-track_info = mixer.get_track_info(track_index)
-all_tracks = mixer.get_all_tracks()
-mixer.reset_mixer()
-mixer.set_track_levels({0: 0.8, 1: 0.7, 2: 0.75})
-```
+- **set_track_volume**: Set track volume (0-128)
+- **set_track_pan**: Set track pan position (0-128)
+- **set_track_mute**: Mute, unmute, or toggle mute state for a track
 
 ### Device Controls
 
-```python
-# Get device parameters
-parameters = devices.get_device_parameters(track_index, device_index)
+- **set_device_parameter**: Set a device parameter value (0-128)
 
-# Set device parameters
-devices.set_device_parameter(track_index, device_index, param_index, value)
-devices.toggle_device_enabled(track_index, device_index)
+### Information
 
-# Automation
-workflows.automate_filter_sweep(track_index, device_index, param_index, duration_sec)
-```
+- **get_project_info**: Get information about the current Bitwig project
+- **get_tracks_info**: Get information about all tracks in the project
+- **get_track_info**: Get information about a specific track
+- **get_device_parameters**: Get information about the selected device parameters
 
-## Error Handling
+## Available Resources
 
-The library provides comprehensive error handling:
+- **bitwig://project/info**: Project information
+- **bitwig://transport**: Transport state
+- **bitwig://tracks**: All tracks in the project
+- **bitwig://track/{index}**: Specific track information
+- **bitwig://devices**: Active devices
+- **bitwig://device/parameters**: Parameters for the selected device
 
-```python
-from osc_client import OscClientError
-from parameter_validation import ValidationError
+## Example Prompts
 
-try:
-    client.set_track_volume(track_index, volume)
-except ValidationError as e:
-    print(f"Invalid parameter: {e}")
-except OscClientError as e:
-    print(f"Communication error: {e}")
-```
+- **setup_mixing_session**: Set up a new mixing session with default settings
+- **create_track_template**: Create a track template with specific devices and settings
+- **optimize_track_settings**: Get recommendations for optimizing track settings
 
-## Testing
+## Configuration
 
-The project includes a comprehensive test suite:
+The server can be configured through:
+
+1. Environment variables or `.env` file
+2. Command line arguments
+3. Settings in `bitwig_mcp_server/settings.py`
+
+### Command Line Arguments
 
 ```bash
-# Run unit tests only (skips Bitwig integration tests)
+python -m bitwig_mcp_server --help
+```
+
+## Development
+
+### Environment Setup
+
+```bash
+# Install dev dependencies
+uv sync
+
+# Install pre-commit hooks
+uv run pre-commit install
+```
+
+### Running Tests
+
+```bash
+# Run unit tests (no Bitwig required)
 make test
 
 # Run all tests including Bitwig integration tests
@@ -209,52 +146,17 @@ make test
 make test-all
 ```
 
-### Integration Tests with Bitwig Studio
+### Code Quality
 
-Integration tests require:
-
-1. Bitwig Studio running
-2. OSC controller configured in Bitwig (Settings > Controllers)
-3. Proper port configuration (default: send 8000, receive 9000)
-
-These tests can be controlled via environment variables:
-
-- `BITWIG_TESTS_ENABLED=1`: Force enable Bitwig integration tests
-- `BITWIG_TESTS_DISABLED=1`: Force disable Bitwig integration tests
-
-> ⚠️ **WARNING**: Integration tests modify state in the currently open Bitwig project, including track volumes, pan settings, tempo, and device parameters. **DO NOT run these tests with important projects open in Bitwig**. Ideally, create a dedicated test project for integration testing.
-
-#### Future Improvements
-
-The current OSC implementation has several limitations for testing:
-
-- Cannot create new projects programmatically
-- Cannot create tracks or devices through OSC
-- No safe way to restore all state after testing
-
-Future work should:
-
-- Extend the OSC implementation to support project creation and management
-- Add commands for creating and configuring tracks and devices
-- Implement better state management for non-destructive testing
-- Create a dedicated test project file that can be loaded before tests begin
+```bash
+# Run code quality checks
+make check
+```
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Run tests (`make test`)
-5. Push to the branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- The Bitwig team for providing the OSC API
-- The python-osc library developers

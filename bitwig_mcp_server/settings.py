@@ -1,32 +1,29 @@
+"""
+Settings configuration for the Bitwig MCP Server.
+
+This module provides configuration settings using Pydantic for validation.
+"""
+
 import logging
 from pathlib import Path
+from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
+# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def get_default_root_dir() -> Path:
-    return Path(__file__).resolve().parent.parent
-
-
-def get_default_env_file() -> Path:
-    env_file = get_default_root_dir() / ".env"
-    if not env_file.exists():
-        logger.warning(f"{env_file} does not exist")
-    return env_file
-
-
 class Settings(BaseSettings):
     """
-    Settings class.
+    Application settings with validation.
 
     Attributes:
-        app_name (str): The name of the application.
+        app_name (str): The application name identifier.
         app_logo_image (Path): The path to the application logo image.
-        app_tagline (str): The tagline of the application.
+        app_tagline (str): The application tagline/description.
         root_dir (Path): The root directory of the application.
         log_level (str): The logging level (e.g., ERROR, WARN, INFO, DEBUG).
         bitwig_host (str): The hostname or IP address of the Bitwig Studio instance.
@@ -37,11 +34,13 @@ class Settings(BaseSettings):
 
     app_name: str = "bitwig-mcp-server"
     app_tagline: str = "MCP server for Bitwig Studio."
-    root_dir: Path = Field(default_factory=get_default_root_dir)
-    app_logo_image: Path = Field(
-        default_factory=lambda: get_default_root_dir() / "logo.jpg"
+    root_dir: Path = Field(
+        default_factory=lambda: Path(__file__).resolve().parent.parent
     )
-    log_level: str = Field(default="INFO", description="The logging level.")
+    app_logo_image: Path = Field(
+        default_factory=lambda: Path(__file__).resolve().parent.parent / "logo.jpg"
+    )
+    log_level: str = Field("INFO", description="The logging level.")
 
     # Bitwig settings
     bitwig_host: str = Field(
@@ -60,33 +59,78 @@ class Settings(BaseSettings):
     )
 
     class Config:
-        """
-        Configuration class for Settings.
+        """Configuration for settings behavior."""
 
-        Attributes:
-            env_file (str): The name of the environment file to load settings from.
-            env_file_encoding (str): The encoding of the environment file.
-        """
-
-        env_file = get_default_env_file()
+        env_file = ".env"
         env_file_encoding = "utf-8"
-
-    @field_validator("app_name")
-    def validate_str_not_empty(cls, v: str) -> str:
-        if isinstance(v, str) and not v.strip():
-            raise ValueError("app_name must not be empty")
-        return v
+        env_prefix = "BITWIG_MCP_"
+        case_sensitive = False
 
     @field_validator("log_level")
     def validate_log_level(cls, v: str) -> str:
-        if v.upper() not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
-            raise ValueError(
-                "log_level must be one of DEBUG, INFO, WARNING, ERROR", "CRITICAL"
-            )
+        """Validate the log level is a recognized value.
+
+        Args:
+            v: The log level value
+
+        Returns:
+            The validated log level
+
+        Raises:
+            ValueError: If log level is not valid
+        """
+        valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        if v.upper() not in valid_levels:
+            raise ValueError(f"log_level must be one of {', '.join(valid_levels)}")
+        return v.upper()
+
+    @field_validator("app_name")
+    def validate_app_name(cls, v: str) -> str:
+        """Validate the app name is not empty.
+
+        Args:
+            v: The app name value
+
+        Returns:
+            The validated app name
+
+        Raises:
+            ValueError: If app name is empty
+        """
+        if not v.strip():
+            raise ValueError("app_name must not be empty")
         return v
 
-    @field_validator("root_dir")
-    def validate_path_exists(cls, v: Path) -> Path:
-        if not v.exists():
-            raise ValueError(f"{v} does not exist")
-        return v
+    def configure_logging(self) -> None:
+        """Configure logging based on settings."""
+        log_level = getattr(logging, self.log_level)
+        logging.basicConfig(
+            level=log_level,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+        logger.info(f"Logging configured with level {self.log_level}")
+
+    @property
+    def env_file_path(self) -> Optional[Path]:
+        """Get the path to the loaded .env file.
+
+        Returns:
+            Path to the .env file if it exists, None otherwise
+        """
+        env_file = self.root_dir / self.Config.env_file
+        return env_file if env_file.exists() else None
+
+
+def get_settings() -> Settings:
+    """Get application settings from environment.
+
+    Returns:
+        Configured Settings instance
+    """
+    try:
+        settings = Settings()
+        settings.configure_logging()
+        return settings
+    except Exception as e:
+        logger.error(f"Error loading settings: {e}")
+        raise

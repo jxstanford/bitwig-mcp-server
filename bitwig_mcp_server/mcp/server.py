@@ -1,17 +1,18 @@
 """
 Bitwig MCP Server
 
-Implements the Model Context Protocol server for Bitwig Studio integration.
+Implementation of the Model Context Protocol server for Bitwig Studio integration.
 """
 
 import asyncio
 import logging
-from typing import Any
+from typing import Any, List, Optional
 
-from mcp.server import Server
-from mcp.types import Resource, TextContent, Tool
+from mcp.server import Server as MCPServer
+from mcp.types import TextContent
 
 from bitwig_mcp_server.osc.controller import BitwigOSCController
+from bitwig_mcp_server.settings import Settings
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -20,21 +21,24 @@ logger = logging.getLogger(__name__)
 class BitwigMCPServer:
     """MCP server for Bitwig Studio integration"""
 
-    def __init__(
-        self, host: str = "127.0.0.1", send_port: int = 8000, receive_port: int = 9000
-    ):
+    def __init__(self, settings: Optional[Settings] = None):
         """Initialize the Bitwig MCP server
 
         Args:
-            host: Bitwig host IP address
-            send_port: Port to send OSC messages to Bitwig
-            receive_port: Port to receive OSC messages from Bitwig
+            settings: Application settings (uses default Settings if not provided)
         """
-        # Create the MCP server
-        self.mcp_server = Server("bitwig-mcp-server")
+        # Use provided settings or create default
+        self.settings = settings or Settings()
 
-        # Create the Bitwig OSC controller
-        self.controller = BitwigOSCController(host, send_port, receive_port)
+        # Create the MCP server
+        self.mcp_server = MCPServer(f"bitwig-mcp-server-{self.settings.app_name}")
+
+        # Create the Bitwig OSC controller with settings
+        self.controller = BitwigOSCController(
+            self.settings.bitwig_host,
+            self.settings.bitwig_send_port,
+            self.settings.bitwig_receive_port,
+        )
 
         # Set up handlers
         self._setup_handlers()
@@ -48,300 +52,111 @@ class BitwigMCPServer:
 
     async def start(self) -> None:
         """Start the Bitwig MCP server"""
-        # Start the OSC controller
-        self.controller.start()
+        try:
+            # Start the OSC controller
+            self.controller.start()
 
-        # Wait for controller to be ready
-        while not self.controller.ready:
-            await asyncio.sleep(0.1)
+            # Wait for controller to be ready
+            wait_count = 0
+            max_wait_count = 50  # 5 seconds
+            while not self.controller.ready and wait_count < max_wait_count:
+                await asyncio.sleep(0.1)
+                wait_count += 1
 
-        logger.info("Bitwig MCP Server started")
+            if not self.controller.ready:
+                logger.error("Bitwig OSC controller failed to become ready in time")
+                raise RuntimeError("Bitwig OSC controller failed to initialize")
+
+            logger.info(f"Bitwig MCP Server started - hosting {self.settings.app_name}")
+        except Exception as e:
+            logger.exception(f"Failed to start Bitwig MCP Server: {e}")
+            await self.stop()
+            raise
 
     async def stop(self) -> None:
         """Stop the Bitwig MCP server"""
-        self.controller.stop()
-        logger.info("Bitwig MCP Server stopped")
+        try:
+            if hasattr(self, "controller"):
+                self.controller.stop()
+            logger.info("Bitwig MCP Server stopped")
+        except Exception as e:
+            logger.exception(f"Error while stopping Bitwig MCP Server: {e}")
 
-    async def list_tools(self) -> list[Tool]:
+    async def list_tools(self) -> List[Any]:
         """List available Bitwig tools"""
-        return [
-            Tool(
-                name="transport_play",
-                description="Toggle play/pause state of Bitwig",
-                inputSchema={
-                    "type": "object",
-                    "properties": {},
-                },
-            ),
-            Tool(
-                name="set_tempo",
-                description="Set the tempo of the Bitwig project",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "bpm": {
-                            "type": "number",
-                            "description": "Tempo in beats per minute (0-666)",
-                        }
-                    },
-                    "required": ["bpm"],
-                },
-            ),
-            Tool(
-                name="set_track_volume",
-                description="Set the volume of a track",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "track_index": {
-                            "type": "integer",
-                            "description": "Track index (1-based)",
-                        },
-                        "volume": {
-                            "type": "number",
-                            "description": "Volume value (0-128, where 64 is 0dB)",
-                        },
-                    },
-                    "required": ["track_index", "volume"],
-                },
-            ),
-            Tool(
-                name="set_track_pan",
-                description="Set the pan of a track",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "track_index": {
-                            "type": "integer",
-                            "description": "Track index (1-based)",
-                        },
-                        "pan": {
-                            "type": "number",
-                            "description": "Pan value (0-128, where 64 is center)",
-                        },
-                    },
-                    "required": ["track_index", "pan"],
-                },
-            ),
-            Tool(
-                name="toggle_track_mute",
-                description="Toggle mute state of a track",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "track_index": {
-                            "type": "integer",
-                            "description": "Track index (1-based)",
-                        }
-                    },
-                    "required": ["track_index"],
-                },
-            ),
-            Tool(
-                name="set_device_parameter",
-                description="Set value of a device parameter",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "param_index": {
-                            "type": "integer",
-                            "description": "Parameter index (1-based)",
-                        },
-                        "value": {
-                            "type": "number",
-                            "description": "Parameter value (0-128)",
-                        },
-                    },
-                    "required": ["param_index", "value"],
-                },
-            ),
-        ]
+        from bitwig_mcp_server.mcp.tools import get_bitwig_tools
+
+        return get_bitwig_tools()
 
     async def call_tool(
         self, name: str, arguments: dict[str, Any]
-    ) -> list[TextContent]:
-        """Call a Bitwig tool"""
+    ) -> List[TextContent]:
+        """Call a Bitwig tool
+
+        Args:
+            name: Tool name to call
+            arguments: Arguments for the tool
+
+        Returns:
+            Result from the tool execution
+
+        Raises:
+            ValueError: If tool name is unknown or arguments are invalid
+        """
         try:
-            if name == "transport_play":
-                self.controller.client.play()
-                return [TextContent(type="text", text="Transport play/pause toggled")]
+            from bitwig_mcp_server.mcp.tools import execute_tool
 
-            elif name == "set_tempo":
-                bpm = arguments.get("bpm")
-                if bpm is None:
-                    raise ValueError("Missing required argument: bpm")
-
-                self.controller.client.set_tempo(bpm)
-                return [TextContent(type="text", text=f"Tempo set to {bpm} BPM")]
-
-            elif name == "set_track_volume":
-                track_index = arguments.get("track_index")
-                volume = arguments.get("volume")
-                if track_index is None or volume is None:
-                    raise ValueError("Missing required arguments: track_index, volume")
-
-                self.controller.client.set_track_volume(track_index, volume)
-                return [
-                    TextContent(
-                        type="text", text=f"Track {track_index} volume set to {volume}"
-                    )
-                ]
-
-            elif name == "set_track_pan":
-                track_index = arguments.get("track_index")
-                pan = arguments.get("pan")
-                if track_index is None or pan is None:
-                    raise ValueError("Missing required arguments: track_index, pan")
-
-                self.controller.client.set_track_pan(track_index, pan)
-                return [
-                    TextContent(
-                        type="text", text=f"Track {track_index} pan set to {pan}"
-                    )
-                ]
-
-            elif name == "toggle_track_mute":
-                track_index = arguments.get("track_index")
-                if track_index is None:
-                    raise ValueError("Missing required argument: track_index")
-
-                self.controller.client.toggle_track_mute(track_index)
-                return [
-                    TextContent(type="text", text=f"Track {track_index} mute toggled")
-                ]
-
-            elif name == "set_device_parameter":
-                param_index = arguments.get("param_index")
-                value = arguments.get("value")
-                if param_index is None or value is None:
-                    raise ValueError("Missing required arguments: param_index, value")
-
-                self.controller.client.set_device_parameter(param_index, value)
-                return [
-                    TextContent(
-                        type="text",
-                        text=f"Device parameter {param_index} set to {value}",
-                    )
-                ]
-
-            else:
-                raise ValueError(f"Unknown tool: {name}")
-
+            return await execute_tool(self.controller, name, arguments)
         except Exception as e:
             logger.exception(f"Error calling tool {name}: {e}")
             return [TextContent(type="text", text=f"Error: {e!s}")]
 
-    async def list_resources(self) -> list[Resource]:
+    async def list_resources(self) -> List[Any]:
         """List available Bitwig resources"""
-        return [
-            Resource(
-                uri="bitwig://transport",
-                name="Transport Info",
-                description="Current transport state (play/stop, tempo, etc.)",
-                mimeType="text/plain",
-            ),
-            Resource(
-                uri="bitwig://tracks",
-                name="Tracks Info",
-                description="Information about all tracks in the project",
-                mimeType="text/plain",
-            ),
-            Resource(
-                uri="bitwig://devices",
-                name="Devices Info",
-                description="Information about active devices and parameters",
-                mimeType="text/plain",
-            ),
-        ]
+        from bitwig_mcp_server.mcp.resources import get_bitwig_resources
+
+        return get_bitwig_resources()
 
     async def read_resource(self, uri: str) -> str:
-        """Read a Bitwig resource"""
-        # Refresh state from Bitwig
-        self.controller.client.refresh()
-        await asyncio.sleep(0.5)  # Wait for responses
+        """Read a Bitwig resource
 
-        if uri == "bitwig://transport":
-            play_state = self.controller.server.get_message("/play")
-            tempo = self.controller.server.get_message("/tempo/raw")
-            return f"Transport State:\nPlaying: {bool(play_state)}\nTempo: {tempo} BPM"
+        Args:
+            uri: Resource URI to read
 
-        elif uri == "bitwig://tracks":
-            tracks_info = []
-            # Attempt to get information for up to 10 tracks
-            for i in range(1, 11):
-                name = self.controller.server.get_message(f"/track/{i}/name")
-                volume = self.controller.server.get_message(f"/track/{i}/volume")
-                pan = self.controller.server.get_message(f"/track/{i}/pan")
-                mute = self.controller.server.get_message(f"/track/{i}/mute")
-                solo = self.controller.server.get_message(f"/track/{i}/solo")
+        Returns:
+            Content of the resource
 
-                # If we have a name, consider the track valid
-                if name:
-                    tracks_info.append(
-                        f"Track {i}: {name}\n"
-                        f"  Volume: {volume}\n"
-                        f"  Pan: {pan}\n"
-                        f"  Mute: {bool(mute)}\n"
-                        f"  Solo: {bool(solo)}\n"
-                    )
+        Raises:
+            ValueError: If resource URI is unknown
+        """
+        try:
+            from bitwig_mcp_server.mcp.resources import read_resource
 
-            return (
-                "Tracks:\n" + "\n".join(tracks_info)
-                if tracks_info
-                else "No tracks found"
-            )
-
-        elif uri == "bitwig://devices":
-            devices_info = []
-            # Check if a device is selected/active
-            device_exists = self.controller.server.get_message("/device/exists")
-
-            if device_exists:
-                device_name = self.controller.server.get_message("/device/name")
-                devices_info.append(f"Active Device: {device_name}\nParameters:")
-
-                # Get information for up to 8 parameters
-                for i in range(1, 9):
-                    param_exists = self.controller.server.get_message(
-                        f"/device/param/{i}/exists"
-                    )
-                    if param_exists:
-                        param_name = self.controller.server.get_message(
-                            f"/device/param/{i}/name"
-                        )
-                        param_value = self.controller.server.get_message(
-                            f"/device/param/{i}/value"
-                        )
-                        devices_info.append(f"  {i}: {param_name} = {param_value}")
-
-            return "\n".join(devices_info) if devices_info else "No active device found"
-
-        else:
-            raise ValueError(f"Unknown resource URI: {uri}")
+            return await read_resource(self.controller, uri)
+        except Exception as e:
+            logger.exception(f"Error reading resource {uri}: {e}")
+            raise ValueError(f"Failed to read resource {uri}: {e}")
 
 
-async def run_server():
-    """Run the Bitwig MCP server"""
-    server = BitwigMCPServer()
-    await server.start()
+async def run_server(settings: Optional[Settings] = None) -> None:
+    """Run the Bitwig MCP server
 
-    # Keep the server running
+    Args:
+        settings: Optional custom settings
+    """
+    server = BitwigMCPServer(settings)
+
     try:
+        await server.start()
+
+        # Keep the server running
         while True:
             await asyncio.sleep(1)
     except asyncio.CancelledError:
         pass
-    finally:
-        await server.stop()
-
-
-def main():
-    """Main entry point"""
-    try:
-        asyncio.run(run_server())
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
-
-
-if __name__ == "__main__":
-    main()
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e}")
+    finally:
+        await server.stop()

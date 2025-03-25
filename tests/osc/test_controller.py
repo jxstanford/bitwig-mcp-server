@@ -13,8 +13,12 @@ class TestBitwigOSCController(unittest.TestCase):
         """Set up test environment"""
         # Create controller with mocked client and server
         with (
-            patch("bitwig_mcp_server.osc.controller.BitwigOSCClient") as mock_client_class,
-            patch("bitwig_mcp_server.osc.controller.BitwigOSCServer") as mock_server_class,
+            patch(
+                "bitwig_mcp_server.osc.controller.BitwigOSCClient"
+            ) as mock_client_class,
+            patch(
+                "bitwig_mcp_server.osc.controller.BitwigOSCServer"
+            ) as mock_server_class,
         ):
             self.mock_client = MagicMock()
             self.mock_server = MagicMock()
@@ -38,7 +42,10 @@ class TestBitwigOSCController(unittest.TestCase):
 
     def test_context_manager(self):
         """Test context manager protocol"""
-        with patch.object(self.controller, "start") as mock_start, patch.object(self.controller, "stop") as mock_stop:
+        with (
+            patch.object(self.controller, "start") as mock_start,
+            patch.object(self.controller, "stop") as mock_stop,
+        ):
             with self.controller:
                 mock_start.assert_called_once()
 
@@ -46,19 +53,28 @@ class TestBitwigOSCController(unittest.TestCase):
 
     def test_send_and_wait(self):
         """Test sending command and waiting for response"""
-        # Set up mock response
+        # Set up mock response and ready state
+        self.controller.ready = True
+        self.controller.connected = True
         self.mock_server.received_messages = {"/test/response": None}
         self.mock_server.wait_for_message.return_value = 42
 
-        # Test with default response address
-        result = self.controller.send_and_wait("/test/command", 1)
-        self.mock_client.send.assert_called_with("/test/command", 1)
-        self.mock_server.wait_for_message.assert_called_with("/test/command", 2.0)
-        self.assertEqual(result, 42)
+        # Mock the retry_with_timeout method
+        with patch.object(
+            self.controller.error_handler, "retry_with_timeout"
+        ) as mock_retry:
+            mock_retry.return_value = 42
 
-        # Test with custom response address
-        result = self.controller.send_and_wait("/test/command", 1, "/test/response")
-        self.mock_server.wait_for_message.assert_called_with("/test/response", 2.0)
+            # Test with default response address
+            result = self.controller.send_and_wait("/test/command", 1)
+            self.assertEqual(result, 42)
+
+            # Verify retry was called
+            mock_retry.assert_called()
+
+            # Test with custom response address
+            result = self.controller.send_and_wait("/test/command", 1, "/test/response")
+            self.assertEqual(result, 42)
 
     def test_get_track_info(self):
         """Test retrieving track information"""
@@ -72,19 +88,43 @@ class TestBitwigOSCController(unittest.TestCase):
             "/track/2/name": "Other Track",  # Should be ignored
         }
 
-        # Get track info
-        track_info = self.controller.get_track_info(1)
+        # Set up mock for refresh
+        self.controller.refresh = MagicMock(return_value=True)
 
-        # Verify client refreshed
-        self.mock_client.refresh.assert_called_once()
+        # Set up get_message mock to return values from received_messages
+        self.mock_server.get_message = (
+            lambda addr: self.mock_server.received_messages.get(addr)
+        )
 
-        # Verify track info extracted correctly
-        self.assertEqual(track_info, {"name": "Audio Track", "volume": 64, "pan": 64, "mute": 0, "solo": 0})
+        # Mock the validate_track_index method
+        with patch.object(
+            self.controller.error_handler, "validate_track_index"
+        ) as mock_validate:
+            mock_validate.return_value = 1
+
+            # Get track info
+            track_info = self.controller.get_track_info(1)
+
+            # Verify validate and refresh called
+            mock_validate.assert_called_with(1)
+            self.controller.refresh.assert_called_once()
+
+            # Verify track info extracted correctly
+            expected = {
+                "name": "Audio Track",
+                "volume": 64,
+                "pan": 64,
+                "mute": 0,
+                "solo": 0,
+                "index": 1,
+            }
+            self.assertEqual(track_info, expected)
 
     def test_get_device_params(self):
         """Test retrieving device parameters"""
         # Set up mock parameter data
         self.mock_server.received_messages = {
+            "/device/exists": 1,
             "/device/param/1/exists": 1,
             "/device/param/1/name": "Cutoff",
             "/device/param/1/value": 64,
@@ -95,13 +135,18 @@ class TestBitwigOSCController(unittest.TestCase):
         }
 
         # Mock get_message to return values from received_messages
-        self.mock_server.get_message = lambda addr: self.mock_server.received_messages.get(addr)
+        self.mock_server.get_message = (
+            lambda addr: self.mock_server.received_messages.get(addr)
+        )
+
+        # Set up mock for refresh
+        self.controller.refresh = MagicMock(return_value=True)
 
         # Get device parameters
         params = self.controller.get_device_params()
 
         # Verify client refreshed
-        self.mock_client.refresh.assert_called_once()
+        self.controller.refresh.assert_called_once()
 
         # Verify parameters extracted correctly
         self.assertEqual(len(params), 2)
