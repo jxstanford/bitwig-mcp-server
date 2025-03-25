@@ -127,6 +127,23 @@ Our implementation is guided by the user stories documented in `docs/user_storie
 - [ ] Fix app integration tests that use the MCP protocol
 - [ ] Ensure MCP server tests work with mock controllers
 
+#### Foundation Implementation (HIGH PRIORITY)
+
+- [ ] **Device Browser and Library Infrastructure**
+
+  - [ ] Add `bitwig://browser/devices` resource to list available device categories
+  - [ ] Add `bitwig://browser/devices/{category}` to list devices in a category
+  - [ ] Add `bitwig://browser/presets/{device}` to list available presets
+  - [ ] Implement tools to insert devices from the browser
+  - [ ] Create device capabilities discovery mechanism
+
+- [ ] **Project State Infrastructure**
+  - [ ] Add `bitwig://project` resource for overall project metadata
+  - [ ] Add `bitwig://clips` resource to list all clips in the project
+  - [ ] Add `bitwig://clip/{id}` resource to access MIDI data
+  - [ ] Add `bitwig://arrangement` to access arrangement information
+  - [ ] Implement tools to query and modify project structure
+
 ### Priority: Song Creation and Composition Workflows
 
 Based on review of common music production workflows, we're prioritizing song creation and composition capabilities to make Claude most useful for creative tasks. This reflects a standard progression from ideation to finalization in the music creation process.
@@ -141,6 +158,26 @@ Our development priorities are guided by the natural progression of music creati
 4. **Mixing and Production** - Refining and balancing the sounds to create a polished product
 
 By following this workflow, we ensure that Claude can assist meaningfully at each stage of the music creation process, with a focus on the creative aspects first. This approach enables users to realize their musical ideas more efficiently and effectively.
+
+#### Critical Missing Infrastructure
+
+For Claude to effectively assist with music production, we need to implement two critical components that are currently missing:
+
+1. **Device Browser and Library Access**
+
+   - A comprehensive representation of available Bitwig devices
+   - Ability to browse and load devices by category
+   - Access to device presets and metadata
+   - Mechanism to query device capabilities and parameters
+
+2. **Project State Representation**
+   - Complete overview of the current project structure
+   - Access to MIDI clip contents for analysis
+   - Arrangement and scene information
+   - Project metadata (tempo, key, markers, time signature changes)
+   - Ability to query and modify the project state programmatically
+
+These components form the foundation upon which all creative workflows depend, and should be prioritized in the immediate implementation phase.
 
 #### 1. Ideation & Composition Phase (Target: Sprint 1)
 
