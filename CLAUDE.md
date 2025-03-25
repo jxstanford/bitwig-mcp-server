@@ -88,9 +88,23 @@ When working on this codebase:
 - Cache resource data appropriately to avoid excessive OSC traffic
 - Consider versioning for evolving resources
 
-## TODO Items
+## User Story Implementation Roadmap
 
-### Resource Improvements
+Our implementation is guided by the user stories documented in `docs/user_stories.md`. Below is our roadmap that maps the user stories to specific implementation tasks.
+
+### Currently Implemented
+
+- ✅ Basic transport control (play/stop)
+- ✅ Tempo adjustment
+- ✅ Basic track parameter manipulation (volume, pan, mute)
+- ✅ Basic device parameter control
+- ✅ Error handling with meaningful messages
+- ✅ Type validation for parameters
+- ✅ Device navigation (siblings, layers)
+
+### In Progress
+
+#### Resource Improvements
 
 - [ ] Add device-specific URIs with indices: `bitwig://device/{index}` and `bitwig://device/{index}/parameters`
 - [x] Add device siblings and layers resources (`bitwig://device/siblings` and `bitwig://device/layers`)
@@ -98,10 +112,57 @@ When working on this codebase:
 - [x] Add comprehensive tests for the new device resources
 - [x] Fix OSC integration tests to properly select devices on tracks
 
-### Integration Improvements
+#### Integration Improvements
 
 - [ ] Fix app integration tests that use the MCP protocol
 - [ ] Ensure MCP server tests work with mock controllers
+
+### Next Implementation Phase
+
+Based on our user stories, these are the next features to implement:
+
+#### For Music Producers (Target: Sprint 1)
+
+1. **Track Management**
+
+   - [ ] Implement track creation/deletion via MCP
+   - [ ] Add comprehensive track information resources
+   - [ ] Implement track selection tools
+
+2. **Advanced Device Control**
+   - [ ] Implement device preset saving/loading
+   - [ ] Add device automation capabilities
+   - [ ] Create device browser navigation
+
+#### For Developers (Target: Sprint 1-2)
+
+1. **Subscription Model**
+   - [ ] Implement parameter change subscriptions
+   - [ ] Add event-based notification system
+   - [ ] Create WebSocket-based event streaming
+
+#### For AI Assistants (Target: Sprint 2)
+
+1. **Context Awareness**
+
+   - [ ] Implement project structure analysis
+   - [ ] Add MIDI pattern examination capabilities
+   - [ ] Create chord progression analysis tools
+
+2. **Creative Tools**
+   - [ ] Add arrangement structure modification tools
+   - [ ] Implement clip creation/modification capabilities
+
+#### For Systems Integration (Target: Sprint 3)
+
+1. **External Control**
+
+   - [ ] Implement MIDI controller mapping
+   - [ ] Add external trigger capabilities
+
+2. **Automation**
+   - [ ] Create task scheduling framework
+   - [ ] Implement event-based automation system
 
 ### Development Tasks
 
