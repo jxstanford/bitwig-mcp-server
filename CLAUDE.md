@@ -19,6 +19,16 @@ This project creates a server that allows Claude to control Bitwig Studio throug
 - MCP development guidelines: https://github.com/jxstanford/prompts-and-context/mcp
 - Bitwig and OSC documentation: https://github.com/jxstanford/prompts-and-context/bitwig-mcp-server
 
+### Music Production Resources
+
+Our prioritization of features is informed by standard music production workflows. For additional resources on music production workflows, consider the following common references:
+
+- Bitwig Studio Manual: Official documentation covering Bitwig's workflow and features
+- Ableton's "Making Music - 74 Creative Strategies": Excellent resource on music creation workflows
+- Rick Snoman's "Dance Music Manual": Contains detailed production workflows
+- "Mixing Secrets for the Small Studio" by Mike Senior: Covers workflow for the mixing phase
+- "The Art of Music Production" by Richard James Burgess: Historical and practical music production processes
+
 ## Current Status
 
 ### Implemented Components
@@ -117,31 +127,93 @@ Our implementation is guided by the user stories documented in `docs/user_storie
 - [ ] Fix app integration tests that use the MCP protocol
 - [ ] Ensure MCP server tests work with mock controllers
 
-### Next Implementation Phase
+### Priority: Song Creation and Composition Workflows
 
-Based on our user stories, these are the next features to implement:
+Based on review of common music production workflows, we're prioritizing song creation and composition capabilities to make Claude most useful for creative tasks. This reflects a standard progression from ideation to finalization in the music creation process.
 
-#### For Music Producers (Target: Sprint 1)
+#### Workflow-Driven Development
 
-1. **Track Management**
+Our development priorities are guided by the natural progression of music creation:
 
-   - [ ] Implement track creation/deletion via MCP
-   - [ ] Add comprehensive track information resources
-   - [ ] Implement track selection tools
+1. **Ideation and Composition** - The initial creative phase where musical ideas are formed
+2. **Sound Design** - The process of creating and refining the sonic palette
+3. **Arrangement** - Organizing musical ideas into a coherent structure
+4. **Mixing and Production** - Refining and balancing the sounds to create a polished product
 
-2. **Advanced Device Control**
-   - [ ] Implement device preset saving/loading
-   - [ ] Add device automation capabilities
-   - [ ] Create device browser navigation
+By following this workflow, we ensure that Claude can assist meaningfully at each stage of the music creation process, with a focus on the creative aspects first. This approach enables users to realize their musical ideas more efficiently and effectively.
 
-#### For Developers (Target: Sprint 1-2)
+#### 1. Ideation & Composition Phase (Target: Sprint 1)
+
+- [ ] **MIDI Clip Creation and Editing**
+
+  - [ ] Create new MIDI clips in the arranger
+  - [ ] Add/edit notes in MIDI clips
+  - [ ] Access and modify note properties (velocity, length, position)
+  - [ ] Query clip contents for analysis by Claude
+
+- [ ] **Harmonic Analysis and Suggestion**
+
+  - [ ] Detect and report chord progressions from MIDI clips
+  - [ ] Suggest chord progressions based on music theory
+  - [ ] Identify key signatures from existing material
+
+- [ ] **Pattern Generation**
+  - [ ] Create common rhythm patterns (drums, bass, etc.)
+  - [ ] Generate melodic patterns based on chord progressions
+  - [ ] Save/recall pattern presets
+
+#### 2. Sound Design Phase (Target: Sprint 1-2)
+
+- [ ] **Instrument and Effect Chain Management**
+
+  - [ ] Browse and load instruments from the library
+  - [ ] Create complex instrument/effect chains
+  - [ ] Save and recall device presets
+  - [ ] Access detailed device parameters
+
+- [ ] **Parameter Automation**
+  - [ ] Create automation for device parameters
+  - [ ] Design dynamic sound evolution
+  - [ ] Generate common automation shapes (LFO, envelope)
+
+#### 3. Arrangement Phase (Target: Sprint 2)
+
+- [ ] **Project Structure Management**
+
+  - [ ] Create arrangements with multiple sections
+  - [ ] Duplicate/copy/move sections
+  - [ ] Define song structure (intro, verse, chorus, etc.)
+  - [ ] Set up transitions between sections
+
+- [ ] **Track Organization**
+  - [ ] Create logical groupings of tracks
+  - [ ] Set up routing between tracks
+  - [ ] Implement send effects configuration
+
+#### 4. Mixing & Production Phase (Target: Sprint 3)
+
+- [ ] **Advanced Mixing Capabilities**
+
+  - [ ] Configure EQ across multiple tracks
+  - [ ] Set up compression and dynamics processing
+  - [ ] Balance levels across the project
+  - [ ] Create stereo image enhancements
+
+- [ ] **Finishing Tools**
+  - [ ] Master bus processing controls
+  - [ ] Export options for various formats
+  - [ ] Preparation for distribution
+
+### Additional Implementation Tasks
+
+#### For Developers (Target: Concurrent with above phases)
 
 1. **Subscription Model**
    - [ ] Implement parameter change subscriptions
    - [ ] Add event-based notification system
    - [ ] Create WebSocket-based event streaming
 
-#### For AI Assistants (Target: Sprint 2)
+#### For AI Assistants (Integrated throughout phases)
 
 1. **Context Awareness**
 
