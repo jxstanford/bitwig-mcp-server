@@ -1,0 +1,102 @@
+{
+    "name": "Bitwig Device Index",
+    "description": "Simple device index for semantic search",
+    "devices": [
+        {
+            "id": "device_1",
+            "name": "Amp",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_2",
+            "name": "Audio Receiver",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_3",
+            "name": "Bit-8",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_4",
+            "name": "Blur",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_5",
+            "name": "Chain",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_6",
+            "name": "Chorus+",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_7",
+            "name": "Chorus",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_8",
+            "name": "Comb",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_9",
+            "name": "Compressor+",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_10",
+            "name": "Compressor",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_11",
+            "name": "Convolution",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_12",
+            "name": "DC Offset",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_13",
+            "name": "De-Esser",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_14",
+            "name": "Delay+",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_15",
+            "name": "Delay-1",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        },
+        {
+            "id": "device_16",
+            "name": "Delay-2",
+            "metadata": {},
+            "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+        }
+    ]
+}

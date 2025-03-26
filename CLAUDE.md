@@ -18,6 +18,7 @@ This project creates a server that allows Claude to control Bitwig Studio throug
 - coding guidelines: https://github.com/jxstanford/prompts-and-context/code
 - MCP development guidelines: https://github.com/jxstanford/prompts-and-context/mcp
 - Bitwig and OSC documentation: https://github.com/jxstanford/prompts-and-context/bitwig-mcp-server
+- Bitwig OSC Reference: https://github.com/git-moss/DrivenByMoss-Documentation/blob/master/Generic-Tools-Protocols/Open-Sound-Control-(OSC).md
 
 ### Music Production Resources
 
@@ -111,6 +112,10 @@ Our implementation is guided by the user stories documented in `docs/user_storie
 - ✅ Error handling with meaningful messages
 - ✅ Type validation for parameters
 - ✅ Device navigation (siblings, layers)
+- ✅ Browser navigation via OSC
+- ✅ Browser state resources and tools
+- ✅ Browser search infrastructure with ChromaDB
+- ✅ Device recommendation system foundation
 
 ### In Progress
 
@@ -121,28 +126,60 @@ Our implementation is guided by the user stories documented in `docs/user_storie
 - [x] Handle URL encoding in resource URIs (using proper URI parsing)
 - [x] Add comprehensive tests for the new device resources
 - [x] Fix OSC integration tests to properly select devices on tracks
+- [x] Create browser resources and tools for browser navigation
+- [x] Implement browser indexer with ChromaDB vector database
+- [x] Add device recommendation based on semantic search
+- [x] Add comprehensive browser infrastructure tests
 
 #### Integration Improvements
 
 - [ ] Fix app integration tests that use the MCP protocol
 - [ ] Ensure MCP server tests work with mock controllers
 
-#### Foundation Implementation (HIGH PRIORITY)
+#### Browser Implementation Status
 
-- [ ] **Device Browser and Library Infrastructure**
+- [x] **Browser Navigation**
 
+  - [x] Open browser and browse for devices
+  - [x] Navigate browser tabs
+  - [x] Navigate filters and results
+  - [x] Select and commit browser choices
+
+- [x] **Browser State Resources**
+
+  - [x] Access to browser filters and results via URIs
+  - [x] Query browser state (active tab, selected items)
+  - [x] Read browser filter items and results
+
+- [x] **Device Search Infrastructure**
+
+  - [x] ChromaDB integration for vector database
+  - [x] Sentence transformer integration for embeddings
+  - [x] Basic device indexing functionality
+  - [x] Device recommendation using semantic search
+
+- [ ] **High-Level Resources (Planned)**
   - [ ] Add `bitwig://browser/devices` resource to list available device categories
   - [ ] Add `bitwig://browser/devices/{category}` to list devices in a category
   - [ ] Add `bitwig://browser/presets/{device}` to list available presets
-  - [ ] Implement tools to insert devices from the browser
   - [ ] Create device capabilities discovery mechanism
 
-- [ ] **Project State Infrastructure**
-  - [ ] Add `bitwig://project` resource for overall project metadata
-  - [ ] Add `bitwig://clips` resource to list all clips in the project
-  - [ ] Add `bitwig://clip/{id}` resource to access MIDI data
-  - [ ] Add `bitwig://arrangement` to access arrangement information
-  - [ ] Implement tools to query and modify project structure
+#### Project State Infrastructure (Planned)
+
+- [ ] Add `bitwig://project` resource for overall project metadata
+- [ ] Add `bitwig://clips` resource to list all clips in the project
+- [ ] Add `bitwig://clip/{id}` resource to access MIDI data
+- [ ] Add `bitwig://arrangement` to access arrangement information
+- [ ] Implement tools to query and modify project structure
+
+#### Browser Implementation Challenges
+
+The current browser implementation faces several challenges:
+
+- Limited visibility into browser structure via OSC
+- Difficulty in programmatically navigating between different device categories
+- Challenges with extracting complete metadata for devices
+- Issues with OSC responses for some browser addresses
 
 ### Priority: Song Creation and Composition Workflows
 
@@ -169,6 +206,7 @@ For Claude to effectively assist with music production, we need to implement two
    - Ability to browse and load devices by category
    - Access to device presets and metadata
    - Mechanism to query device capabilities and parameters
+   - Device recommendation system based on semantic search
 
 2. **Project State Representation**
    - Complete overview of the current project structure
@@ -273,13 +311,33 @@ These components form the foundation upon which all creative workflows depend, a
    - [ ] Create task scheduling framework
    - [ ] Implement event-based automation system
 
-### Development Tasks
+### Development Tasks and Next Steps
 
-1. Expand the existing tools in `tools.py` to cover more Bitwig functionality
-2. Add more detailed resource representations in `resources.py`
-3. Create additional prompt templates in `prompts.py` for common workflows
-4. Ensure robust error handling throughout the codebase
-5. Add comprehensive tests for all new functionality
+1. **Immediate Browser Infrastructure Improvements**
+
+   - Improve browser indexer to handle different device types (Instruments, Audio FX, Note FX)
+   - Enhance device metadata collection to include categories, types, and capabilities
+   - Develop a more robust method for browser navigation that works with Bitwig Studio's OSC implementation
+   - Create dedicated utility for updating the device index on a regular basis
+
+2. **Resource and Tool Enhancements**
+
+   - Expand the existing tools in `tools.py` to cover more Bitwig functionality
+   - Add more detailed resource representations in `resources.py`
+   - Create high-level browser resources for device categories and presets
+   - Add semantic search integration in MCP tools
+
+3. **Project State Infrastructure**
+
+   - Start implementing project state resources for arrangement and clip access
+   - Add support for querying and modifying MIDI data
+   - Create tools for project structure analysis and modification
+
+4. **General Improvements**
+   - Create additional prompt templates in `prompts.py` for common workflows
+   - Enhance error handling for browser and device operations
+   - Add comprehensive tests for all new functionality
+   - Document browser infrastructure usage
 
 ## Testing
 

@@ -408,6 +408,275 @@ class BitwigOSCClient:
 
         self.send(f"/device/select/{device_index}", 1)
 
+    # Browser controls based on OSC documentation
+    def browse_for_device(self, position: str = "after") -> None:
+        """Activate browser to insert a device
+
+        Args:
+            position: Where to insert the device ("after" or "before" the selected device)
+
+        Raises:
+            InvalidParameterError: If position is invalid
+            ConnectionError: If unable to send the command
+        """
+        if position not in ["after", "before"]:
+            raise InvalidParameterError(
+                "position", position, "must be either 'after' or 'before'"
+            )
+
+        if position == "after":
+            self.send("/browser/device", None)
+        else:
+            self.send("/browser/device/before", None)
+
+    def browse_for_preset(self) -> None:
+        """Activate browser to browse for presets of currently selected device
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.send("/browser/preset", None)
+
+    def commit_browser_selection(self) -> None:
+        """Commit the current selection in the browser
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.send("/browser/commit", None)
+
+    def cancel_browser(self) -> None:
+        """Cancel the current browser session
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.send("/browser/cancel", None)
+
+    def navigate_browser_tab(self, direction: str) -> None:
+        """Navigate between browser tabs
+
+        Args:
+            direction: Direction to navigate ("+", "-")
+
+        Raises:
+            InvalidParameterError: If direction is invalid
+            ConnectionError: If unable to send the command
+        """
+        if direction not in ["+", "-"]:
+            raise InvalidParameterError(
+                "direction", direction, "must be either '+' or '-'"
+            )
+
+        self.send(f"/browser/tab/{direction}", None)
+
+    def navigate_browser_filter(self, filter_index: int, direction: str) -> None:
+        """Navigate through filter options
+
+        Args:
+            filter_index: Index of the filter column (1-6)
+            direction: Direction to navigate ("+", "-")
+
+        Raises:
+            InvalidParameterError: If parameters are invalid
+            ConnectionError: If unable to send the command
+        """
+        if not isinstance(filter_index, int) or filter_index < 1 or filter_index > 6:
+            raise InvalidParameterError(
+                "filter_index", filter_index, "must be between 1 and 6"
+            )
+
+        if direction not in ["+", "-"]:
+            raise InvalidParameterError(
+                "direction", direction, "must be either '+' or '-'"
+            )
+
+        self.send(f"/browser/filter/{filter_index}/{direction}", None)
+
+    def reset_browser_filter(self, filter_index: int) -> None:
+        """Reset a browser filter
+
+        Args:
+            filter_index: Index of the filter column to reset (1-6)
+
+        Raises:
+            InvalidParameterError: If filter_index is invalid
+            ConnectionError: If unable to send the command
+        """
+        if not isinstance(filter_index, int) or filter_index < 1 or filter_index > 6:
+            raise InvalidParameterError(
+                "filter_index", filter_index, "must be between 1 and 6"
+            )
+
+        self.send(f"/browser/filter/{filter_index}/reset", None)
+
+    def navigate_browser_result(self, direction: str) -> None:
+        """Navigate through browser results
+
+        Args:
+            direction: Direction to navigate ("+", "-")
+
+        Raises:
+            InvalidParameterError: If direction is invalid
+            ConnectionError: If unable to send the command
+        """
+        if direction not in ["+", "-"]:
+            raise InvalidParameterError(
+                "direction", direction, "must be either '+' or '-'"
+            )
+
+        self.send(f"/browser/result/{direction}", None)
+
+    # Higher-level convenience methods for common tasks
+    def insert_device_after_selected(self) -> None:
+        """Open browser to insert a device after the currently selected one
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.browse_for_device("after")
+
+    def insert_device_before_selected(self) -> None:
+        """Open browser to insert a device before the currently selected one
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.browse_for_device("before")
+
+    def browse_device_presets(self) -> None:
+        """Open browser to browse presets for the currently selected device
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.browse_for_preset()
+
+    def select_next_browser_tab(self) -> None:
+        """Select the next browser tab
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.navigate_browser_tab("+")
+
+    def select_previous_browser_tab(self) -> None:
+        """Select the previous browser tab
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.navigate_browser_tab("-")
+
+    def select_next_filter_option(self, filter_index: int) -> None:
+        """Select the next option in a filter column
+
+        Args:
+            filter_index: Index of the filter column (1-6)
+
+        Raises:
+            InvalidParameterError: If filter_index is invalid
+            ConnectionError: If unable to send the command
+        """
+        self.navigate_browser_filter(filter_index, "+")
+
+    def select_previous_filter_option(self, filter_index: int) -> None:
+        """Select the previous option in a filter column
+
+        Args:
+            filter_index: Index of the filter column (1-6)
+
+        Raises:
+            InvalidParameterError: If filter_index is invalid
+            ConnectionError: If unable to send the command
+        """
+        self.navigate_browser_filter(filter_index, "-")
+
+    def select_next_browser_result(self) -> None:
+        """Select the next result in the browser
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.navigate_browser_result("+")
+
+    def select_previous_browser_result(self) -> None:
+        """Select the previous result in the browser
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.navigate_browser_result("-")
+
+    # Workflow helper methods
+    def browse_and_insert_device(
+        self, num_tabs: int = 0, num_filters: List[int] = None, num_results: int = 0
+    ) -> None:
+        """Browse and insert a device using navigation commands
+
+        Args:
+            num_tabs: Number of tab navigations (positive = forward, negative = backward)
+            num_filters: List of filter navigations by column index (e.g., [(1, 2), (4, -1)])
+                        Format: List of tuples (filter_index, num_navigations)
+            num_results: Number of result navigations (positive = forward, negative = backward)
+
+        Raises:
+            ConnectionError: If unable to send commands
+        """
+        # Open device browser
+        self.browse_for_device("after")
+
+        # Navigate to desired tab
+        for _ in range(abs(num_tabs)):
+            direction = "+" if num_tabs >= 0 else "-"
+            self.navigate_browser_tab(direction)
+
+        # Apply filter selections
+        if num_filters:
+            for filter_index, num_navigations in num_filters:
+                for _ in range(abs(num_navigations)):
+                    direction = "+" if num_navigations >= 0 else "-"
+                    self.navigate_browser_filter(filter_index, direction)
+
+        # Navigate to desired result
+        for _ in range(abs(num_results)):
+            direction = "+" if num_results >= 0 else "-"
+            self.navigate_browser_result(direction)
+
+        # Commit selection
+        self.commit_browser_selection()
+
+    def browse_and_load_preset(
+        self, num_filters: List[int] = None, num_results: int = 0
+    ) -> None:
+        """Browse and load a preset using navigation commands
+
+        Args:
+            num_filters: List of filter navigations by column index (e.g., [(1, 2), (4, -1)])
+                        Format: List of tuples (filter_index, num_navigations)
+            num_results: Number of result navigations (positive = forward, negative = backward)
+
+        Raises:
+            ConnectionError: If unable to send commands
+        """
+        # Open preset browser
+        self.browse_for_preset()
+
+        # Apply filter selections
+        if num_filters:
+            for filter_index, num_navigations in num_filters:
+                for _ in range(abs(num_navigations)):
+                    direction = "+" if num_navigations >= 0 else "-"
+                    self.navigate_browser_filter(filter_index, direction)
+
+        # Navigate to desired result
+        for _ in range(abs(num_results)):
+            direction = "+" if num_results >= 0 else "-"
+            self.navigate_browser_result(direction)
+
+        # Commit selection
+        self.commit_browser_selection()
+
     def get_status(self) -> Dict[str, Any]:
         """Get client status information
 

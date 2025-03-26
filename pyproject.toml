@@ -23,12 +23,21 @@ dependencies = [
     "pydantic-settings>=2.6.1",
     "pytest-asyncio>=0.25.3",
     "python-osc>=1.8.3",
+    "chromadb>=0.4.18",
+    "sentence-transformers>=2.2.2",
+    "beautifulsoup4>=4.12.2",
+    "requests>=2.31.0",
 ]
 
 [project.urls]
 Homepage = "https://jxstanford.github.io/bitwig-mcp-server/"
 Repository = "https://github.com/jxstanford/bitwig-mcp-server"
 Documentation = "https://jxstanford.github.io/bitwig-mcp-server/"
+
+[project.scripts]
+bitwig-browser-index = "bitwig_mcp_server.utils.index_browser:main"
+bitwig-device-recommend = "bitwig_mcp_server.utils.recommend_devices:main"
+bitwig-enhance-index = "bitwig_mcp_server.utils.enhance_index:main"
 
 [tool.uv]
 dev-dependencies = [

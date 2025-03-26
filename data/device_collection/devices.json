@@ -1,0 +1,66 @@
+[
+    {
+        "name": "Amp",
+        "index": 1
+    },
+    {
+        "name": "Audio Receiver",
+        "index": 2
+    },
+    {
+        "name": "Bit-8",
+        "index": 3
+    },
+    {
+        "name": "Blur",
+        "index": 4
+    },
+    {
+        "name": "Chain",
+        "index": 5
+    },
+    {
+        "name": "Chorus+",
+        "index": 6
+    },
+    {
+        "name": "Chorus",
+        "index": 7
+    },
+    {
+        "name": "Comb",
+        "index": 8
+    },
+    {
+        "name": "Compressor+",
+        "index": 9
+    },
+    {
+        "name": "Compressor",
+        "index": 10
+    },
+    {
+        "name": "Convolution",
+        "index": 11
+    },
+    {
+        "name": "DC Offset",
+        "index": 12
+    },
+    {
+        "name": "De-Esser",
+        "index": 13
+    },
+    {
+        "name": "Delay+",
+        "index": 14
+    },
+    {
+        "name": "Delay-1",
+        "index": 15
+    },
+    {
+        "name": "Delay-2",
+        "index": 16
+    }
+]

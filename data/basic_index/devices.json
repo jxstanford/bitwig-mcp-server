@@ -1,0 +1,98 @@
+[
+    {
+        "name": "Amp",
+        "index": 1,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Audio Receiver",
+        "index": 2,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Bit-8",
+        "index": 3,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Blur",
+        "index": 4,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Chain",
+        "index": 5,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Chorus+",
+        "index": 6,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Chorus",
+        "index": 7,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Comb",
+        "index": 8,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Compressor+",
+        "index": 9,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Compressor",
+        "index": 10,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Convolution",
+        "index": 11,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "DC Offset",
+        "index": 12,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "De-Esser",
+        "index": 13,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Delay+",
+        "index": 14,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Delay-1",
+        "index": 15,
+        "type": "Unknown",
+        "metadata": {}
+    },
+    {
+        "name": "Delay-2",
+        "index": 16,
+        "type": "Unknown",
+        "metadata": {}
+    }
+]
