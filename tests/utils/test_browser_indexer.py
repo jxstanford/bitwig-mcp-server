@@ -5,12 +5,15 @@ import tempfile
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from bitwig_mcp_server.utils.browser_indexer import (
     BitwigBrowserIndexer,
     BrowserItem,
+    DeviceDescriptionScraper,
     DeviceMetadata,
     build_index,
+    enhance_index_with_descriptions,
 )
 
 
@@ -31,6 +34,7 @@ def mock_osc_controller():
     # Set up browser message responses
     browser_messages = {
         "/browser/exists": True,
+        "/browser/isActive": True,  # Added this for navigate_to_everything_tab
         "/browser/tab": "Everything",
         "/browser/filter/1/exists": True,
         "/browser/filter/1/name": "Category",
@@ -220,6 +224,128 @@ async def test_collect_browser_metadata(mock_osc_controller):
     assert browser_items[0].metadata["category"] == "Synthesizer"
     assert browser_items[0].metadata["creator"] == "Bitwig"
     assert browser_items[1].name == "FM-4"
+
+
+@pytest.mark.asyncio
+async def test_collect_browser_metadata_with_pagination():
+    """Test collecting metadata from the browser with pagination"""
+    # Create a more complex mock controller for pagination testing
+    mock_controller = MagicMock()
+    mock_controller.server = MagicMock()
+    mock_controller.client = MagicMock()
+
+    # Create a state dictionary to simulate pagination behavior
+    # Start with page 1 data
+    page1_data = {
+        "/browser/exists": True,
+        "/browser/isActive": True,
+        "/browser/tab": "Result",
+        # Page 1 results (16 items, full page)
+        **{f"/browser/result/{i}/exists": True for i in range(1, 17)},
+        **{f"/browser/result/{i}/name": f"Device {i}" for i in range(1, 17)},
+        # Category filter
+        "/browser/filter/1/exists": True,
+        "/browser/filter/1/name": "Category",
+        **{"/browser/filter/1/item/1/exists": True for i in range(1, 17)},
+        **{"/browser/filter/1/item/1/isSelected": True for i in range(1, 17)},
+        **{"/browser/filter/1/item/1/name": "Synthesizer" for i in range(1, 17)},
+        # Creator filter
+        "/browser/filter/2/exists": True,
+        "/browser/filter/2/name": "Creator",
+        **{"/browser/filter/2/item/1/exists": True for i in range(1, 17)},
+        **{"/browser/filter/2/item/1/isSelected": True for i in range(1, 17)},
+        **{"/browser/filter/2/item/1/name": "Bitwig" for i in range(1, 17)},
+    }
+
+    # Page 2 data (7 items, partial page)
+    page2_data = {
+        "/browser/exists": True,
+        "/browser/isActive": True,
+        "/browser/tab": "Result",
+        # Page 2 results (7 items, partial page)
+        **{f"/browser/result/{i}/exists": True for i in range(1, 8)},
+        **{f"/browser/result/{i}/name": f"Device {i+16}" for i in range(1, 8)},
+        # Results after index 7 don't exist
+        **{f"/browser/result/{i}/exists": False for i in range(8, 17)},
+        # Category filter
+        "/browser/filter/1/exists": True,
+        "/browser/filter/1/name": "Category",
+        **{"/browser/filter/1/item/1/exists": True for i in range(1, 8)},
+        **{"/browser/filter/1/item/1/isSelected": True for i in range(1, 8)},
+        **{"/browser/filter/1/item/1/name": "Effect" for i in range(1, 8)},
+        # Creator filter
+        "/browser/filter/2/exists": True,
+        "/browser/filter/2/name": "Creator",
+        **{"/browser/filter/2/item/1/exists": True for i in range(1, 8)},
+        **{"/browser/filter/2/item/1/isSelected": True for i in range(1, 8)},
+        **{"/browser/filter/2/item/1/name": "Bitwig" for i in range(1, 8)},
+    }
+
+    # Page 3 data (empty page to signal end of results)
+    page3_data = {
+        "/browser/exists": True,
+        "/browser/isActive": True,
+        "/browser/tab": "Result",
+        # No results on page 3
+        **{f"/browser/result/{i}/exists": False for i in range(1, 17)},
+    }
+
+    # Use a list to track which page we're on
+    current_page = [0]  # Using a list so we can modify it inside the nested function
+    page_data = [page1_data, page2_data, page3_data]
+
+    # Create a mock get_message function that returns data based on the current page
+    def mock_get_message(key):
+        return page_data[current_page[0]].get(key)
+
+    # Create a mock select_next_browser_result_page that advances the page
+    def mock_next_page():
+        if current_page[0] < len(page_data) - 1:
+            current_page[0] += 1
+
+    # Create a mock select_previous_browser_result_page that goes back a page
+    def mock_prev_page():
+        if current_page[0] > 0:
+            current_page[0] -= 1
+
+    # Set up the mock controller
+    mock_controller.server.get_message = mock_get_message
+    mock_controller.client.select_next_browser_result_page = mock_next_page
+    mock_controller.client.select_previous_browser_result_page = mock_prev_page
+
+    # Create the indexer with our mock controller
+    indexer = BitwigBrowserIndexer(persistent_dir=tempfile.mkdtemp())
+    indexer.controller = mock_controller
+    indexer.client = mock_controller.client
+
+    # Test collecting metadata with pagination
+    with patch.object(indexer, "navigate_to_everything_tab", return_value=True):
+        browser_items = await indexer.collect_browser_metadata()
+
+    # Check results
+    # We should have 16 items from page 1 + 7 items from page 2 = 23 total
+    assert len(browser_items) == 23
+
+    # Check that the global indices are sequential
+    for i, item in enumerate(browser_items):
+        assert item.index == i + 1  # 1-based indexing
+
+    # Check some specific items
+    assert browser_items[0].name == "Device 1"
+    assert browser_items[0].metadata["category"] == "Synthesizer"
+    assert browser_items[0].metadata["creator"] == "Bitwig"
+
+    # Check the last device which should be from page 2
+    assert browser_items[22].name == "Device 23"
+    assert browser_items[22].metadata["category"] == "Effect"
+    assert browser_items[22].metadata["creator"] == "Bitwig"
+
+    # Verify we advanced to page 2, but didn't try page 3 since we can detect
+    # the last page by having fewer than 16 items
+    assert current_page[0] == 1
+
+    # This is correct behavior - our implementation detects that page 2 is the last page
+    # because it has fewer than 16 items, so it doesn't advance to page 3
 
 
 @pytest.mark.asyncio
@@ -421,3 +547,154 @@ async def test_build_index(temp_index_dir):
             mock_makedirs.assert_called_once_with(temp_index_dir, exist_ok=True)
             mock_indexer.get_device_count.assert_called_once()
             mock_indexer.get_collection_stats.assert_called_once()
+
+
+class TestDeviceDescriptionScraper:
+    """Test cases for DeviceDescriptionScraper"""
+
+    def test_init(self):
+        """Test initializing the scraper"""
+        scraper = DeviceDescriptionScraper()
+        assert (
+            scraper.base_url
+            == "https://www.bitwig.com/userguide/latest/device_descriptions/"
+        )
+
+        # Test custom URL
+        custom_url = "https://example.com/descriptions/"
+        custom_scraper = DeviceDescriptionScraper(base_url=custom_url)
+        assert custom_scraper.base_url == custom_url
+
+    def test_scrape_device_descriptions(self):
+        """Test scraping device descriptions"""
+        # Create mock HTML responses
+        mock_index_html = """
+        <html>
+            <body>
+                <a href="./device1.html">Device 1</a>
+                <a href="./device2.html">Device 2</a>
+            </body>
+        </html>
+        """
+
+        mock_device1_html = """
+        <html>
+            <body>
+                <div class="description">Description for Device 1</div>
+            </body>
+        </html>
+        """
+
+        mock_device2_html = """
+        <html>
+            <body>
+                <div class="description">Description for Device 2</div>
+            </body>
+        </html>
+        """
+
+        # Mock requests.get to return our mock responses
+        with patch("requests.get") as mock_get:
+            # Set up the mock to return different responses for different URLs
+            def mock_response(url):
+                mock_resp = MagicMock()
+                if url.endswith("device_descriptions/"):
+                    mock_resp.text = mock_index_html
+                elif url.endswith("device1.html"):
+                    mock_resp.text = mock_device1_html
+                elif url.endswith("device2.html"):
+                    mock_resp.text = mock_device2_html
+                return mock_resp
+
+            mock_get.side_effect = mock_response
+
+            # Initialize scraper and run test
+            scraper = DeviceDescriptionScraper()
+            descriptions = scraper.scrape_device_descriptions()
+
+            # Verify results
+            assert len(descriptions) == 2
+            assert descriptions["Device 1"] == "Description for Device 1"
+            assert descriptions["Device 2"] == "Description for Device 2"
+
+            # Verify requests were made
+            assert mock_get.call_count == 3
+
+    def test_scrape_error_handling(self):
+        """Test error handling during scraping"""
+        # Mock requests.get to raise an exception
+        with patch("requests.get") as mock_get:
+            mock_get.side_effect = requests.RequestException("Connection error")
+
+            # Initialize scraper and run test
+            scraper = DeviceDescriptionScraper()
+            descriptions = scraper.scrape_device_descriptions()
+
+            # Verify results
+            assert len(descriptions) == 0
+
+
+@pytest.mark.asyncio
+async def test_enhance_index_with_descriptions(temp_index_dir):
+    """Test enhancing an index with descriptions"""
+    # Create a mock indexer
+    mock_indexer = MagicMock()
+    mock_indexer.get_device_count.return_value = 2
+    mock_collection = MagicMock()
+    mock_indexer.collection = mock_collection
+    mock_indexer.create_embedding.return_value = [0.1, 0.2, 0.3]
+
+    # Set up mock collection data
+    mock_collection.get.return_value = {
+        "ids": ["device_1", "device_2"],
+        "metadatas": [
+            {"name": "Device 1", "type": "Instrument", "category": "Synthesizer"},
+            {"name": "Device 2", "type": "Audio FX", "category": "Delay"},
+        ],
+        "documents": [
+            "Name: Device 1. Type: Instrument. Category: Synthesizer.",
+            "Name: Device 2. Type: Audio FX. Category: Delay.",
+        ],
+    }
+
+    # Mock the scraper to return some descriptions
+    mock_scraper = MagicMock()
+    mock_scraper.scrape_device_descriptions.return_value = {
+        "Device 1": "A virtual analog synthesizer",
+        "Device 2": "A classic delay effect",
+    }
+
+    # Patch the necessary functions
+    with patch(
+        "bitwig_mcp_server.utils.browser_indexer.BitwigBrowserIndexer",
+        return_value=mock_indexer,
+    ), patch(
+        "bitwig_mcp_server.utils.browser_indexer.DeviceDescriptionScraper",
+        return_value=mock_scraper,
+    ):
+        # Run the enhancement function
+        updated_count = await enhance_index_with_descriptions(temp_index_dir)
+
+        # Verify results
+        assert updated_count == 2
+        mock_indexer.get_device_count.assert_called_once()
+        mock_collection.get.assert_called_once()
+        mock_scraper.scrape_device_descriptions.assert_called_once()
+        assert mock_indexer.create_embedding.call_count == 2
+        assert mock_collection.update.call_count == 2
+
+        # Verify the updates included descriptions
+        update_calls = mock_collection.update.call_args_list
+        for i, call_args in enumerate(update_calls):
+            kwargs = call_args[1]  # Get the keyword arguments
+
+            # Check that metadatas and documents were included
+            assert "metadatas" in kwargs
+            assert "documents" in kwargs
+
+            # Check that description was added to metadata and document
+            metadata = kwargs["metadatas"][0]
+            assert "description" in metadata
+
+            document = kwargs["documents"][0]
+            assert "Description:" in document

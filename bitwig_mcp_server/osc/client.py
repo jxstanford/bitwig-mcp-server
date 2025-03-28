@@ -527,6 +527,24 @@ class BitwigOSCClient:
 
         self.send(f"/browser/result/{direction}", None)
 
+    def navigate_browser_result_page(self, direction: str) -> None:
+        """Navigate through browser result pages (each page contains up to 16 results)
+
+        Args:
+            direction: Direction to navigate ("+", "-")
+
+        Raises:
+            InvalidParameterError: If direction is invalid
+            ConnectionError: If unable to send the command
+        """
+        if direction not in ["+", "-"]:
+            raise InvalidParameterError(
+                "direction", direction, "must be either '+' or '-'"
+            )
+
+        # Page navigation addresses based on DrivenByMoss implementation
+        self.send(f"/browser/result/page/{direction}", None)
+
     # Higher-level convenience methods for common tasks
     def insert_device_after_selected(self) -> None:
         """Open browser to insert a device after the currently selected one
@@ -607,6 +625,22 @@ class BitwigOSCClient:
             ConnectionError: If unable to send the command
         """
         self.navigate_browser_result("-")
+
+    def select_next_browser_result_page(self) -> None:
+        """Navigate to the next page of browser results (up to 16 results per page)
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.navigate_browser_result_page("+")
+
+    def select_previous_browser_result_page(self) -> None:
+        """Navigate to the previous page of browser results (up to 16 results per page)
+
+        Raises:
+            ConnectionError: If unable to send the command
+        """
+        self.navigate_browser_result_page("-")
 
     # Workflow helper methods
     def browse_and_insert_device(

@@ -196,6 +196,21 @@ class TestBitwigOSCClient(unittest.TestCase):
         with pytest.raises(InvalidParameterError):
             self.client.navigate_browser_result("invalid")
 
+        # Test navigate browser result page
+        self.client.navigate_browser_result_page("+")
+        self.client.client.send_message.assert_called_with(
+            "/browser/result/page/+", None
+        )
+
+        self.client.navigate_browser_result_page("-")
+        self.client.client.send_message.assert_called_with(
+            "/browser/result/page/-", None
+        )
+
+        # Test invalid direction
+        with pytest.raises(InvalidParameterError):
+            self.client.navigate_browser_result_page("invalid")
+
     def test_browser_convenience_methods(self):
         """Test browser convenience methods"""
         # Test insert device after selected
@@ -235,6 +250,18 @@ class TestBitwigOSCClient(unittest.TestCase):
         # Test select previous browser result
         self.client.select_previous_browser_result()
         self.client.client.send_message.assert_called_with("/browser/result/-", None)
+
+        # Test select next browser result page
+        self.client.select_next_browser_result_page()
+        self.client.client.send_message.assert_called_with(
+            "/browser/result/page/+", None
+        )
+
+        # Test select previous browser result page
+        self.client.select_previous_browser_result_page()
+        self.client.client.send_message.assert_called_with(
+            "/browser/result/page/-", None
+        )
 
     def test_browser_workflow_methods(self):
         """Test browser workflow methods"""
