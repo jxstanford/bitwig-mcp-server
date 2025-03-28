@@ -15,9 +15,13 @@ from mcp.client.session import ClientSession
 from mcp.shared.memory import create_client_server_memory_streams
 
 from bitwig_mcp_server.mcp.server import BitwigMCPServer
+from bitwig_mcp_server.settings import Settings
 from tests.conftest import skip_if_bitwig_not_running
 
 # Set up logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # Skip tests if Bitwig is not running
@@ -29,10 +33,8 @@ async def server_client() -> (
     AsyncGenerator[Tuple[BitwigMCPServer, ClientSession], None]
 ):
     """Create a BitwigMCPServer and connected MCP client session."""
-    # Create server with different ports to avoid conflicts
-    from bitwig_mcp_server.settings import Settings
-
-    test_settings = Settings(bitwig_receive_port=9001, bitwig_send_port=8001)
+    # Create server with default ports (important: Bitwig needs to be configured to use these)
+    test_settings = Settings()
     server = BitwigMCPServer(test_settings)
 
     # Create memory streams for client-server communication
@@ -53,10 +55,39 @@ async def server_client() -> (
             )
         )
 
-        # Start the OSC controller
-        await server.start()
-
         try:
+            # Start the OSC controller
+            logger.info("Starting MCP server and connecting to Bitwig...")
+            await server.start()
+
+            # Wait for server to be ready and verify connection
+            wait_count = 0
+            max_wait_count = 50  # 5 seconds
+            while not server.controller.ready and wait_count < max_wait_count:
+                await asyncio.sleep(0.1)
+                wait_count += 1
+
+            if not server.controller.ready:
+                logger.error(
+                    "Could not connect to Bitwig - server failed to initialize"
+                )
+                pytest.skip("Could not connect to Bitwig Studio")
+
+            logger.info("MCP server connected to Bitwig successfully")
+
+            # Make sure Bitwig is in a known state
+            # Stop transport if playing
+            play_state = server.controller.server.get_message("/play")
+            if play_state:
+                server.controller.client.stop()
+                await asyncio.sleep(0.5)
+
+            # Make sure browser is closed
+            browser_active = server.controller.server.get_message("/browser/isActive")
+            if browser_active:
+                server.controller.client.cancel_browser()
+                await asyncio.sleep(0.5)
+
             # Initialize client
             await client.initialize()
 
@@ -64,13 +95,32 @@ async def server_client() -> (
             yield server, client
         finally:
             # Clean up
-            server_task.cancel()
-            try:
-                await asyncio.wait_for(server_task, timeout=1.0)
-            except (asyncio.CancelledError, asyncio.TimeoutError):
-                pass
+            logger.info("Cleaning up after tests...")
 
+            # Ensure Bitwig is left in a clean state
+            if hasattr(server, "controller") and server.controller is not None:
+                # Stop transport
+                server.controller.client.stop()
+
+                # Close browser if open
+                browser_active = server.controller.server.get_message(
+                    "/browser/isActive"
+                )
+                if browser_active:
+                    server.controller.client.cancel_browser()
+                    await asyncio.sleep(0.5)
+
+            # Cancel MCP server task
+            if server_task and not server_task.done():
+                server_task.cancel()
+                try:
+                    await asyncio.wait_for(server_task, timeout=1.0)
+                except (asyncio.CancelledError, asyncio.TimeoutError):
+                    pass
+
+            # Stop server
             await server.stop()
+            logger.info("Test cleanup completed")
 
 
 class TestBitwigMCPServerIntegration:
@@ -93,8 +143,12 @@ class TestBitwigMCPServerIntegration:
         logger.info(f"Available tools: {tool_names}")
 
         # Verify some essential tools are present
-        assert any(name for name in tool_names if "play" in name), "Missing play tool"
-        assert any(name for name in tool_names if "tempo" in name), "Missing tempo tool"
+        assert any(
+            name for name in tool_names if "transport_play" == name
+        ), "Missing transport_play tool"
+        assert any(
+            name for name in tool_names if "set_tempo" == name
+        ), "Missing set_tempo tool"
 
     @pytest.mark.asyncio
     async def test_transport_control(self, server_client):
@@ -104,9 +158,9 @@ class TestBitwigMCPServerIntegration:
         # Find play tool
         tools_result = await client.list_tools()
         tools = tools_result.tools if hasattr(tools_result, "tools") else []
-        play_tools = [tool for tool in tools if "play" in tool.name]
+        play_tools = [tool for tool in tools if "transport_play" == tool.name]
 
-        assert play_tools, "No play tool found"
+        assert play_tools, "No transport_play tool found"
         play_tool = play_tools[0]
 
         # Get initial play state
@@ -124,6 +178,7 @@ class TestBitwigMCPServerIntegration:
 
         # Toggle back to original state
         await client.call_tool(play_tool.name)
+        await asyncio.sleep(0.5)  # Allow time for state to return to original
 
     @pytest.mark.asyncio
     async def test_tempo_control(self, server_client):
@@ -133,9 +188,9 @@ class TestBitwigMCPServerIntegration:
         # Find tempo tool
         tools_result = await client.list_tools()
         tools = tools_result.tools if hasattr(tools_result, "tools") else []
-        tempo_tools = [tool for tool in tools if "tempo" in tool.name]
+        tempo_tools = [tool for tool in tools if "set_tempo" == tool.name]
 
-        assert tempo_tools, "No tempo tool found"
+        assert tempo_tools, "No set_tempo tool found"
         tempo_tool = tempo_tools[0]
 
         # Get current tempo
@@ -157,9 +212,27 @@ class TestBitwigMCPServerIntegration:
         # Verify we got a response
         assert result is not None, "No response from tempo tool"
 
+        # Wait briefly for change to take effect
+        await asyncio.sleep(0.5)
+
+        # Verify the tempo actually changed
+        server.controller.client.refresh()
+        await asyncio.sleep(0.5)
+        updated_tempo = server.controller.server.get_message("/tempo/raw")
+
+        # Check the tempo changed; allow for small rounding differences
+        if updated_tempo is not None:
+            logger.info(
+                f"Changed tempo from {initial_tempo} to {updated_tempo} (target: {test_tempo})"
+            )
+            assert (
+                abs(updated_tempo - test_tempo) < 0.1
+            ), "Tempo didn't change as expected"
+
         # Reset tempo to original value if we know it
         if initial_tempo is not None:
             await client.call_tool(tempo_tool.name, {"bpm": initial_tempo})
+            await asyncio.sleep(0.5)  # Allow time for restoration
 
     @pytest.mark.asyncio
     async def test_list_resources(self, server_client):
@@ -175,11 +248,18 @@ class TestBitwigMCPServerIntegration:
         # Check that we have resources available
         assert resources, "No resources returned from server"
 
+        # Log some of the resources
+        resource_uris = [str(resource.uri) for resource in resources]
+        logger.info(f"Found {len(resource_uris)} resources")
+        logger.info(f"Some resources: {resource_uris[:5]}...")
+
         # Verify some essential resources are present
-        resource_uris = [resource.uri for resource in resources]
         assert any(
             uri for uri in resource_uris if "transport" in uri
         ), "Missing transport resource"
+        assert any(
+            uri for uri in resource_uris if "tracks" in uri
+        ), "Missing tracks resource"
 
     @pytest.mark.asyncio
     async def test_read_resource(self, server_client):
@@ -194,7 +274,7 @@ class TestBitwigMCPServerIntegration:
 
         # Find a transport resource
         transport_resources = [
-            resource for resource in resources if "transport" in resource.uri
+            resource for resource in resources if "transport" in str(resource.uri)
         ]
         assert transport_resources, "No transport resource found"
 
@@ -207,3 +287,8 @@ class TestBitwigMCPServerIntegration:
         # Verify we got a response
         assert resource_result is not None, "No content returned from resource"
         assert hasattr(resource_result, "contents"), "Resource result missing contents"
+
+        # Check content
+        content = resource_result.contents
+        logger.info(f"Resource content: {content[:100]}...")  # Log first 100 chars
+        assert "Transport" in content, "Transport info not in resource content"
