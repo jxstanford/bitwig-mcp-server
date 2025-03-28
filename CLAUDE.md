@@ -129,8 +129,10 @@ When working on this codebase:
   - `tests/mcp/test_resources.py`: Tests for MCP resources
 - `tests/osc/`: Unit tests for OSC components
 - `tests/integration/`: Integration tests
-  - `tests/integration/test_mcp_integration.py`: Tests for MCP server integration
+  - `tests/integration/test_app_integration.py`: Tests for the application using MCP client
+  - `tests/integration/test_mcp_integration.py`: Tests for MCP server integration with Bitwig
   - `tests/integration/test_osc_integration.py`: Tests for OSC communication
+  - `tests/integration/test_browser_pagination_integration.py`: Tests for browser pagination
 
 ## Implementation Guidelines
 
@@ -165,6 +167,9 @@ Our implementation is guided by the user stories documented in `docs/user_storie
 - ✅ Browser state resources and tools
 - ✅ Browser search infrastructure with ChromaDB
 - ✅ Device recommendation system foundation
+- ✅ Comprehensive MCP integration tests with Bitwig Studio
+- ✅ Improved app integration tests for the MCP server
+- ✅ Browser pagination with multi-page device navigation
 
 ### In Progress
 
@@ -182,7 +187,9 @@ Our implementation is guided by the user stories documented in `docs/user_storie
 
 #### Integration Improvements
 
-- [ ] Fix app integration tests that use the MCP protocol
+- [x] Fix app integration tests that use the MCP protocol
+- [x] Implement real MCP integration tests with Bitwig Studio
+- [x] Improve browser pagination integration tests
 - [ ] Ensure MCP server tests work with mock controllers
 
 #### Browser Implementation Status
@@ -362,17 +369,17 @@ These components form the foundation upon which all creative workflows depend, a
 
 ### Development Tasks and Next Steps
 
-1. **Immediate Browser Infrastructure Improvements**
+1. **MCP Improvements**
 
-   - Improve browser indexer to handle different device types (Instruments, Audio FX, Note FX)
+   - Enhance MCP server with improved error handling and better client session management
+   - Develop mock controllers for use in MCP server testing
+   - Implement additional MCP tools for advanced Bitwig functionality
+   - Ensure compatibility with future MCP protocol changes
+
+2. **Browser Infrastructure Improvements**
+
+   - Continue improving browser indexer to handle different device types (Instruments, Audio FX, Note FX)
    - Enhance device metadata collection to include categories, types, and capabilities
-   - Develop a more robust method for browser navigation that works with Bitwig Studio's OSC implementation
-   - Create dedicated utility for updating the device index on a regular basis
-
-2. **Resource and Tool Enhancements**
-
-   - Expand the existing tools in `tools.py` to cover more Bitwig functionality
-   - Add more detailed resource representations in `resources.py`
    - Create high-level browser resources for device categories and presets
    - Add semantic search integration in MCP tools
 
@@ -381,12 +388,14 @@ These components form the foundation upon which all creative workflows depend, a
    - Start implementing project state resources for arrangement and clip access
    - Add support for querying and modifying MIDI data
    - Create tools for project structure analysis and modification
+   - Develop resources for accessing project metadata (tempo, key, markers)
 
 4. **General Improvements**
    - Create additional prompt templates in `prompts.py` for common workflows
    - Enhance error handling for browser and device operations
-   - Add comprehensive tests for all new functionality
+   - Continue adding comprehensive tests for all new functionality
    - Document browser infrastructure usage
+   - Improve API documentation
 
 ## Testing
 
