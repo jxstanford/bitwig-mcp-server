@@ -7,6 +7,9 @@
 
 A Model Context Protocol (MCP) server for Bitwig Studio that allows Claude to control your DAW.
 
+**Warning! This is a work in progress. Documentation and implementation may be out of sync, and
+not all functionality may work as expected.**
+
 ## Features
 
 - **AI-Powered Music Production**: Control Bitwig Studio with Claude via MCP
@@ -160,3 +163,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgements
+
+Thanks to Jürgen Moßgraber for publishing the [Driven by Moss](https://www.mossgrabers.de/Software/Bitwig/Bitwig.html#5.2) package. This package leverages that package to interact
+with Bitwig.

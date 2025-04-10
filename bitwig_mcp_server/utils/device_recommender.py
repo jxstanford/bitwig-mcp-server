@@ -135,10 +135,10 @@ class BitwigDeviceRecommender:
         device_category = device_info["category"]
         device_type = device_info["type"]
         device_description = device_info.get("description", "")
-        device_tags = device_info.get("tags", [])
+        device_tags = device_info.get("tags", "")  # Now a string instead of a list
 
         # Compile all device text for matching
-        device_text = f"{device_name} {device_category} {device_type} {device_description} {' '.join(device_tags)}".lower()
+        device_text = f"{device_name} {device_category} {device_type} {device_description} {device_tags}".lower()
         device_keywords = self._extract_keywords(device_text)
 
         # Find matching keywords

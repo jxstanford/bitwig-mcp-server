@@ -1,57 +1,32 @@
 # Bitwig MCP Server - Claude Code Guide
 
-## Development Guidelines
-
-### Commit Guidelines
-
-When committing code to this repository:
-
-- Do NOT include Claude or AI references in commit messages
-- Use conventional commit format (feat:, fix:, docs:, etc.)
-- Focus on describing what the commit does, not how it was created
-
-### Code Quality Guidelines
-
-To ensure code passes linting checks on the first try, follow these practices:
-
-#### Import Management
-
-- Only import modules that are actually used in the code
-- Remove unused imports before committing
-- When importing from `typing`, only import what you need
-- Avoid duplicate imports (especially with `import re`)
-- Place imports in the correct order: standard library, third-party, local modules
-
-#### Variable Usage
-
-- Don't define variables that aren't used later
-- If you need to capture exceptions but don't use the exception variable, use `except Exception:` without the `as e`
-- For debugging variables (like `batch_time`) that aren't used in production code, either remove them or use them
-- Initialize variables at the top of functions if they'll be referenced in multiple places
-- Use underscore (`_`) for variables that are intentionally unused: `_ = some_function()`
-
-#### Function Design
-
-- Declare correct type annotations for parameters and return values
-- Use descriptive variable names that clearly indicate their purpose
-- Split complex functions into smaller, well-named helper functions
-- Use constants for magic values rather than hard-coding them
-
-#### Testing
-
-- Write tests that cover positive and negative scenarios
-- Mock external dependencies properly
-- Ensure tests are deterministic and don't rely on external state
-
-#### Documentation
-
-- Add docstrings that explain function purpose, parameters, and return values
-- Comment complex sections of code
-- Maintain accurate documentation in both code and markdown files
-
 ## Project Overview
 
 This project creates a server that allows Claude to control Bitwig Studio through the Model Context Protocol (MCP). It translates between MCP requests from Claude and OSC commands to Bitwig Studio's control API.
+
+## Project-Specific Guidelines
+
+### Development Workflow
+
+For this project, follow these specific steps:
+
+1. Use an incremental approach focusing on one feature at a time
+2. Update/create appropriate tests for each change
+3. Follow this test procedure for each change:
+   - Run `pytest tests/` to verify changes
+   - Run `mypy bitwig_mcp_server/` for type checking
+   - Run `ruff check bitwig_mcp_server/` for linting
+   - Run `black bitwig_mcp_server/` for code formatting
+
+### MCP Implementation Guidelines
+
+- Tools should follow the MCP Tool schema pattern
+- Each tool should map to one or more OSC commands
+- Error handling should be comprehensive and informative
+- Consider user experience when designing tool APIs
+- Resources should provide clear, structured information
+- Use URIs that follow a consistent pattern
+- Cache resource data appropriately to avoid excessive OSC traffic
 
 ## External References
 
